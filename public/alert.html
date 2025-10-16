@@ -94,75 +94,53 @@
 <body>
 
   <script>
-
-
-
-  // ✅ ปลดล็อกเสียงอัตโนมัติสำหรับ OBS / Chrome
-  window.addEventListener("load", async () => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      gain.gain.value = 0; // เสียงเงียบ
-      oscillator.connect(gain).connect(ctx.destination);
-      oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.05);
-      await ctx.resume();
-      console.log("🔓 Audio unlocked successfully for OBS!");
-    } catch (err) {
-      console.warn("⚠️ Autoplay unlock failed:", err);
-    }
-  });
-
-
-
-
-  // ✅ เริ่มระบบ WebSocket หลังจากปลดล็อกเสียงแล้ว
-  const ws = new WebSocket(
-    (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws"
-  );
-
-  let isPlaying = false;
-  let alertQueue = [];
-
-  const preload = new Audio("alert.mp3");
-    preload.volume = 0;
-    preload.play().catch(() => { });
-
-  ws.onopen = () => console.log("✅ OBS Alert Connected");
-
-    // ✅ โหลด config ล่าสุดจาก server
-    let alertConfig = {};
-    fetch("/config")
-      .then(res => res.json())
-      .then(cfg => {
-        alertConfig = cfg;
-        console.log("📦 โหลด config แล้ว", cfg);
-      })
-      .catch(err => console.error("❌ โหลด config ไม่ได้:", err));
-
-    // ✅ เมื่อ server ส่ง config_update เข้ามา (อัปเดตเรียลไทม์)
-    ws.addEventListener("message", e => {
-      const data = JSON.parse(e.data);
-
-      // ถ้าเป็นการอัปเดต config ใหม่
-      if (data.type === "config_update") {
-        alertConfig = data.config;
-        console.log("🔄 อัปเดต config ใหม่แบบเรียลไทม์:", alertConfig);
-        return;
-      }
-
-      // ถ้าเป็น event donate หรือ alert_test → ใส่คิว
-      if (["donate", "alert_test", "alert_repeat"].includes(data.type)) {
-        enqueueAlert(
-          data.name,
-          data.amount,
-          data.comment || "ขอบคุณสำหรับการสนับสนุน 💖"
-        );
+    // ✅ ปลดล็อกเสียงอัตโนมัติ (สำหรับ OBS/Chrome)
+    window.addEventListener("load", async () => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+        await ctx.resume();
+        console.log("🔓 Audio unlocked successfully!");
+      } catch (err) {
+        console.warn("⚠️ Autoplay unlock failed:", err);
       }
     });
 
+    // ✅ เริ่มระบบ WebSocket
+    const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+
+    let alertQueue = [];
+    let isPlaying = false;
+    let alertConfig = {};
+
+    const preload = new Audio("alert.mp3");
+    preload.volume = 0;
+    preload.play().catch(() => { });
+
+    ws.onopen = () => console.log("✅ OBS Alert Connected");
     ws.onerror = err => console.error("⚠️ WebSocket Error:", err);
+
+    // ✅ ฟังข้อความจาก server
+    ws.addEventListener("message", (e) => {
+      const data = JSON.parse(e.data);
+      console.log("📨 ได้รับข้อมูล:", data);
+
+      if (data.type === "donate") {
+        enqueueAlert(data.name, data.amount, data.comment || "ขอบคุณสำหรับการสนับสนุน 💖");
+      }
+      if (data.type === "alert_test") {
+        enqueueAlert(data.name, data.amount, data.comment || "ทดสอบระบบ Alert 💖");
+      }
+      if (data.type === "config_update") {
+        alertConfig = data.config;
+        console.log("🔄 Config updated:", alertConfig);
+      }
+    });
 
     // 📦 ใส่คิวใหม่
     function enqueueAlert(name, amount, comment) {
@@ -170,7 +148,7 @@
       if (!isPlaying) playNextAlert();
     }
 
-    // ▶️ เล่น alert ตัวต่อไป
+    // ▶️ เล่น alert ทีละตัว
     async function playNextAlert() {
       if (alertQueue.length === 0) return;
       isPlaying = true;
@@ -182,7 +160,7 @@
       if (alertQueue.length > 0) playNextAlert();
     }
 
-    // 🎬 แสดง alert + เสียง
+    // 🎬 แสดง alert + เสียง + เอฟเฟกต์
     async function showAlert(name, amount, comment = "") {
       return new Promise(async (resolve) => {
         const box = document.createElement("div");
@@ -190,28 +168,22 @@
         box.style.borderColor = alertConfig.color || "#69eaff";
 
         box.innerHTML = `
-  <img src="${alertConfig.popupImage?.startsWith('/uploads/')
-            ? alertConfig.popupImage
-            : '/uploads/' + alertConfig.popupImage}" width="120"><br>
-  🌟 <b style="color:${alertConfig.nameColor || '#ff5ca1'};">ขอบคุณ ${name}</b><br>
-  สำหรับการสนับสนุน <b style="color:${alertConfig.amountColor || '#47ffa1'};">${amount} บาท!</b><br>
-  <span style="font-size:18px;color:${alertConfig.commentColor || '#a7b8ff'};">${comment}</span>
-`;
-
+        <img src="${alertConfig.popupImage?.startsWith('/uploads/') ? alertConfig.popupImage : '/uploads/' + (alertConfig.popupImage || 'default.png')}" width="120"><br>
+        🌟 <b style="color:${alertConfig.nameColor || '#ff5ca1'};">ขอบคุณ ${name}</b><br>
+        สำหรับการสนับสนุน <b style="color:${alertConfig.amountColor || '#47ffa1'};">${amount} บาท!</b><br>
+        <span style="font-size:18px;color:${alertConfig.commentColor || '#a7b8ff'};">${comment}</span>
+      `;
         document.body.appendChild(box);
 
-        // 💥 ใช้เสียงจาก config
-        const alertSound = new Audio(alertConfig.sound || "alert.mp3");
-        alertSound.volume = 0.9;
-        alertSound.onended = async () => {
-          // รอ 0.3 วิหลังเสียงโดเนท
+        // 🔊 เล่นเสียง alert
+        const sound = new Audio(alertConfig.sound || "alert.mp3");
+        sound.volume = 0.9;
+        sound.onended = async () => {
           await new Promise(r => setTimeout(r, 300));
-
-          console.log("🔊 เริ่มพูดข้อความ TTS...");
           await generateTTS(`ขอบคุณ ${name} สำหรับการสนับสนุน ${amount} บาท ${comment || ""}`);
           resolve();
         };
-        await alertSound.play().catch(err => console.error("❌ เล่นเสียงไม่ได้:", err));
+        await sound.play().catch(err => console.error("❌ เล่นเสียงไม่ได้:", err));
 
         // 🌈 เอฟเฟกต์อนุภาค
         for (let i = 0; i < 30; i++) {
@@ -239,72 +211,45 @@
       });
     }
 
-    // 🗣️ ฟังก์ชันพูด (Google TTS)
-  // 🗣️ ฟังก์ชันพูด (Google TTS)
-  // 🗣️ ฟังก์ชันพูด (Google TTS)
-  // 🎤 ฟังก์ชัน Google TTS ที่พร้อมใช้งานกับ OBS
-  async function generateTTS(text) {
-    try {
-      const apiKey = "AIzaSyAZBK3w7-bz8vNJHG3638buKoRRBRQDMWU";
-      const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
-      const body = {
-        input: { text },
-        voice: { languageCode: "th-TH", name: "th-TH-Standard-A" },
-        audioConfig: { audioEncoding: "MP3", speakingRate: 0.9 }
-      };
+    // 🗣️ Google TTS
+    async function generateTTS(text) {
+      try {
+        const apiKey = "AIzaSyAZBK3w7-bz8vNJHG3638buKoRRBRQDMWU";
+        const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+        const body = {
+          input: { text },
+          voice: { languageCode: "th-TH", name: "th-TH-Standard-A" },
+          audioConfig: { audioEncoding: "MP3", speakingRate: 0.9 }
+        };
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
 
-      const data = await res.json();
-      console.log("🗣️ TTS API Response:", data);
-      if (!data.audioContent) throw new Error("ไม่มีเสียงจาก Google TTS");
+        const data = await res.json();
+        if (!data.audioContent) throw new Error("ไม่มีเสียงจาก Google TTS");
 
+        const audio = new Audio("data:audio/mp3;base64," + data.audioContent);
+        audio.volume = 1.0;
+        await new Promise(r => setTimeout(r, 150));
+        audio.oncanplaythrough = () => audio.play().catch(err => console.error("❌ เล่นเสียงพูดไม่ได้:", err));
+        audio.load();
 
-      // ✅ สร้างเสียงจาก base64
-      const audio = new Audio("data:audio/mp3;base64," + data.audioContent);
-      audio.volume = 1.0;
-
-      // ✅ รอให้ browser อนุญาต แล้วค่อยเล่น
-      await new Promise(r => setTimeout(r, 150)); // รอระบบเสียงพร้อม
-      audio.oncanplaythrough = () => {
-        audio.play().catch(err => console.error("❌ เล่นเสียงพูดไม่ได้:", err));
-      };
-      audio.load();
-
-    } catch (err) {
-      console.error("❌ generateTTS Error:", err);
+      } catch (err) {
+        console.error("❌ generateTTS Error:", err);
+      }
     }
-  }
 
-  // 🧩 ปลดล็อกเสียงทันทีหลัง OBS โหลดเสร็จ
-  document.addEventListener("DOMContentLoaded", async () => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      await ctx.resume();
-      const silent = new Audio("data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...");
-      silent.volume = 0;
-      await silent.play().catch(() => { });
-      console.log("🔓 เสียงถูกปลดล็อกเรียบร้อยแล้ว (OBS/Chrome)");
-    } catch (err) {
-      console.warn("⚠️ ปลดล็อกเสียงไม่สำเร็จ:", err);
-    }
-  });
-
-  // 🧩 ปุ่มลับ (สำหรับทดสอบเสียง alert แบบ manual)
-  window.addEventListener("click", async () => {
-    const s = new Audio("/alert.mp3");
-    s.volume = 1.0;
-    await s.play();
-    console.log("✅ คลิกแล้ว - ระบบเสียงพร้อมใช้งาน");
-  });
-
-
+    // 🧩 ปุ่มลับ (คลิกเพื่อทดสอบเสียง)
+    window.addEventListener("click", async () => {
+      const s = new Audio("alert.mp3");
+      s.volume = 1.0;
+      await s.play();
+      console.log("✅ คลิกแล้ว - ระบบเสียงพร้อมใช้งาน");
+    });
   </script>
-
 </body>
 
 </html>

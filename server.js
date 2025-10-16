@@ -62,6 +62,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/ws" });
 wss.on("connection", () => console.log("🟢 WebSocket ใหม่เชื่อมต่อเข้ามาแล้ว!"));
 
+
 // ✅ Queue สำหรับ Alert
 let alertQueue = [];
 let isBroadcasting = false;
@@ -117,6 +118,7 @@ app.post("/generateQR", async (req, res) => {
     const now = Date.now();
     pendingDonations = pendingDonations.filter((p) => now - p.time < 600000);
     pendingDonations.push({
+      
       name: name || "ไม่ระบุชื่อ",
       amount: parseFloat(amount),
       comment: comment || "",
@@ -139,30 +141,72 @@ async function saveDonate(name, amount, comment = "") {
 }
 
 // ✅ รับ Webhook จากมือถือ
+// ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
 app.post("/bankhook", async (req, res) => {
-  console.log("✅ ได้รับ Webhook จากมือถือ:", req.body);
-  const text = req.body.text || "";
-  if (!text) return res.json({ ok: false });
+  try {
+    const text = req.body.text || "";
+    console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
-  const looksLikeIncoming = /(ยอดเงิน|จำนวนเงิน|รับเงิน|ฝาก|โอนเข้า|เงินเข้า)/i.test(text);
-  if (!looksLikeIncoming) return res.json({ ok: true });
+    // 🔍 ดึงชื่อและจำนวนเงินจากข้อความมือถือ
+    const match = text.match(/(\d+(?:\.\d+)?)\s*บาท/);
+    const amount = match ? parseFloat(match[1]) : 0;
+    const nameMatch = text.match(/จาก\s(.+)/);
+    const name = nameMatch ? nameMatch[1].trim() : "ไม่ทราบชื่อ";
 
-  const match = text.match(/([\d,]+(?:\.\d+)?)\s*บาท/i);
-  const amount = match ? parseFloat(match[1].replace(/,/g, "")) : 0;
+    if (!amount) {
+      console.log("⚠️ ไม่พบจำนวนเงินในข้อความ");
+      return res.sendStatus(400);
+    }
 
-  if (amount > 0) {
-    const pending = pendingDonations.find((p) => Math.abs(p.amount - amount) < 0.2);
-    const donorName = pending ? pending.name : "ผู้บริจาคจากมือถือ 📱";
-    const comment = pending ? pending.comment || "" : "";
+    // ✅ ตรวจว่าตรงกับ QR ที่รออยู่ไหม
+    const matchDonate = pendingDonations.find(
+      (d) => Math.abs(d.amount - amount) < 0.5 // ยอมให้คลาดเคลื่อน 0.5 บาท
+    );
 
-    console.log(`💖 ตรวจพบยอดเงิน ${amount} บาท จาก ${donorName}`);
-    await saveDonate(donorName, amount, comment);
-    enqueueBroadcast("donate", donorName, amount, comment || "ขอบคุณสำหรับการสนับสนุน 💖");
+    if (!matchDonate) {
+      console.log("⚠️ ไม่มี QR ที่รอตรงกับยอดนี้:", amount);
+    } else {
+      console.log("✅ พบการโอนตรงกับ QR ที่รอ:", matchDonate);
+      // ลบ QR ที่ตรงออกจาก pending list
+      pendingDonations = pendingDonations.filter((d) => d !== matchDonate);
+      fs.writeFileSync(donateFile, JSON.stringify(pendingDonations, null, 2), "utf8");
+    }
 
-    if (pending) pendingDonations = pendingDonations.filter((p) => p !== pending);
+    // 💾 บันทึกลง Firestore
+    const donate = {
+      name: name || matchDonate?.name || "ไม่ระบุชื่อ",
+      amount: amount || matchDonate?.amount,
+      comment: matchDonate?.comment || "",
+      time: new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }),
+    };
+
+    await db.collection("donations").add(donate);
+    console.log("💾 บันทึกโดเนท Firestore:", donate);
+
+    // 📡 แจ้ง OBS ผ่าน WebSocket (alert.html)
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) {
+        client.send(
+          JSON.stringify({
+            type: "donate", // 👈 ต้องใช้ type นี้เท่านั้น!
+            name: donate.name,
+            amount: donate.amount,
+            comment: donate.comment || "ขอบคุณสำหรับการสนับสนุน 💖",
+          })
+        );
+      }
+    });
+
+    // ✅ ล็อกสถานะ
+    console.log("🎉 Alert ส่งไป OBS แล้ว!");
+    res.sendStatus(200);
+
+  } catch (err) {
+    console.error("❌ Error ใน bankhook:", err);
+    res.sendStatus(500);
   }
-  res.json({ ok: true });
 });
+
 
 // ✅ ดึงประวัติโดเนททั้งหมด
 app.get("/donates", async (req, res) => {
@@ -185,6 +229,7 @@ app.get("/test", (req, res) => {
 app.get("/", (req, res) => res.sendFile("index.html", { root: "public" }));
 app.get("/alert", (req, res) => res.sendFile("alert.html", { root: "public" }));
 app.get("/dashboard", (req, res) => res.sendFile("dashboard.html", { root: "public" }));
+app.get("/goal", (req, res) => res.sendFile("goal.html", { root: "public" }));
 
 // ✅ Start server
 const PORT = process.env.PORT || 3000;

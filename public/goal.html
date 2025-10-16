@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <title>🎯 Donation Goal | H0LLoWx</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #141a35;
+            --green: #3eff94;
+            --text: #e9f3ff;
+            --muted: #a7b8ff;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Prompt", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 15px;
+            font-size: 28px;
+            color: var(--green);
+            text-shadow: 0 0 10px #3eff94;
+        }
+
+        .goal-box {
+            width: 80%;
+            max-width: 600px;
+            background: var(--panel);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .progress-bar {
+            height: 32px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #47ffa1, #69ffdd);
+            border-radius: 20px;
+            box-shadow: 0 0 15px #47ffa1;
+            transition: width 1s ease-in-out;
+        }
+
+        .goal-text {
+            font-size: 20px;
+            margin-top: 5px;
+        }
+
+        input {
+            background: #0b1020;
+            color: var(--text);
+            border: 2px solid #47ffa1;
+            border-radius: 10px;
+            padding: 6px 10px;
+            width: 100px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        button {
+            background: linear-gradient(90deg, #47ffa1, #69eaff);
+            color: #0b1020;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 18px;
+            margin-left: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #47ffa1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>💚 เป้าหมายยอดโดเนท 💚</h1>
+    <div class="goal-box">
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        <div class="goal-text">
+            <b id="current">0</b> / <b id="target">1000</b> บาท
+        </div>
+
+        <div style="margin-top:15px;">
+            🎯 เป้าหมายใหม่:
+            <input type="number" id="goalInput" min="1" value="1000">
+            <button onclick="updateGoal()">อัปเดต</button>
+        </div>
+    </div>
+
+    <script>
+        let total = 0;
+        let goal = parseInt(localStorage.getItem("goal")) || 1000;
+
+        document.getElementById("target").innerText = goal;
+
+        async function fetchDonations() {
+            try {
+                const res = await fetch("/donates.json?" + Date.now());
+                const data = await res.json();
+                total = data.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+                updateBar();
+            } catch (err) {
+                console.error("โหลดยอดโดเนทไม่ได้:", err);
+            }
+        }
+
+        function updateBar() {
+            document.getElementById("current").innerText = total.toFixed(0);
+            document.getElementById("target").innerText = goal.toFixed(0);
+
+            const progress = Math.min((total / goal) * 100, 100);
+            document.getElementById("progress").style.width = progress + "%";
+        }
+
+        function updateGoal() {
+            const newGoal = parseInt(document.getElementById("goalInput").value);
+            if (newGoal > 0) {
+                goal = newGoal;
+                localStorage.setItem("goal", goal);
+                updateBar();
+            }
+        }
+
+        // โหลดยอดโดเนทใหม่ทุก 10 วิ
+        fetchDonations();
+        setInterval(fetchDonations, 10000);
+    </script>
+</body>
+
+</html>
