@@ -233,4 +233,52 @@ app.get("/goal", (req, res) => res.sendFile("goal.html", { root: "public" }));
 
 // ✅ Start server
 const PORT = process.env.PORT || 3000;
+
+// ✅ Hook สำหรับรับข้อมูลโดเนทจาก Tasker หรือ curl
+app.post("/api/payment-hook", (req, res) => {
+  try {
+    const { name, amount, comment } = req.body;
+
+    if (!name || !amount) {
+      return res.status(400).json({ error: "Missing name or amount" });
+    }
+
+    // 🔹 โหลดข้อมูลเดิม
+    const donateFile = "donates.json";
+    const data = JSON.parse(fs.readFileSync(donateFile, "utf8"));
+
+    // 🔹 เพิ่มข้อมูลใหม่
+    const record = {
+      name,
+      amount,
+      comment: comment || "",
+      time: new Date().toLocaleString("th-TH"),
+    };
+    data.push(record);
+    fs.writeFileSync(donateFile, JSON.stringify(data, null, 2));
+
+    console.log("💖 มีโดเนทใหม่เข้ามา:", record);
+
+    // 🔹 ส่ง event ไปหา WebSocket alert.html
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) {
+        client.send(
+          JSON.stringify({
+            type: "donate",
+            name,
+            amount,
+            comment,
+          })
+        );
+      }
+    });
+
+    res.json({ success: true, message: "บันทึกโดเนทเรียบร้อย", record });
+  } catch (err) {
+    console.error("❌ payment-hook error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
