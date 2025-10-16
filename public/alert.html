@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Permissions-Policy" content="autoplay=*">
+  <title>💖 H0LLoWx Donate Alert 💖</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon: #69eaff;
+      --neon2: #47b3ff;
+      --bg: #0b1020;
+      --text: #e9f3ff;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: "Prompt", sans-serif;
+    }
+
+    .alert {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: radial-gradient(circle at top left, #132043, #0b1020);
+      border: 2.5px solid var(--neon2);
+      border-radius: 25px;
+      padding: 36px 60px;
+      text-align: center;
+      font-size: 30px;
+      color: var(--text);
+      box-shadow: 0 0 60px var(--neon2);
+      opacity: 0;
+      animation: popIn 1s ease forwards, floaty 2s ease-in-out 1s infinite alternate;
+    }
+
+    @keyframes popIn {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+      }
+
+      60% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    @keyframes fadeOut {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+    }
+
+    @keyframes floaty {
+      0% {
+        transform: translate(-50%, -48%) scale(1);
+      }
+
+      100% {
+        transform: translate(-50%, -52%) scale(1.03);
+      }
+    }
+
+    .particle {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: var(--neon);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.9;
+      filter: blur(2px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <script>
+
+
+
+  // ✅ ปลดล็อกเสียงอัตโนมัติสำหรับ OBS / Chrome
+  window.addEventListener("load", async () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0; // เสียงเงียบ
+      oscillator.connect(gain).connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.05);
+      await ctx.resume();
+      console.log("🔓 Audio unlocked successfully for OBS!");
+    } catch (err) {
+      console.warn("⚠️ Autoplay unlock failed:", err);
+    }
+  });
+
+
+
+
+  // ✅ เริ่มระบบ WebSocket หลังจากปลดล็อกเสียงแล้ว
+  const ws = new WebSocket(
+    (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws"
+  );
+
+  let isPlaying = false;
+  let alertQueue = [];
+
+  const preload = new Audio("alert.mp3");
+    preload.volume = 0;
+    preload.play().catch(() => { });
+
+  ws.onopen = () => console.log("✅ OBS Alert Connected");
+
+    // ✅ โหลด config ล่าสุดจาก server
+    let alertConfig = {};
+    fetch("/config")
+      .then(res => res.json())
+      .then(cfg => {
+        alertConfig = cfg;
+        console.log("📦 โหลด config แล้ว", cfg);
+      })
+      .catch(err => console.error("❌ โหลด config ไม่ได้:", err));
+
+    // ✅ เมื่อ server ส่ง config_update เข้ามา (อัปเดตเรียลไทม์)
+    ws.addEventListener("message", e => {
+      const data = JSON.parse(e.data);
+
+      // ถ้าเป็นการอัปเดต config ใหม่
+      if (data.type === "config_update") {
+        alertConfig = data.config;
+        console.log("🔄 อัปเดต config ใหม่แบบเรียลไทม์:", alertConfig);
+        return;
+      }
+
+      // ถ้าเป็น event donate หรือ alert_test → ใส่คิว
+      if (["donate", "alert_test", "alert_repeat"].includes(data.type)) {
+        enqueueAlert(
+          data.name,
+          data.amount,
+          data.comment || "ขอบคุณสำหรับการสนับสนุน 💖"
+        );
+      }
+    });
+
+    ws.onerror = err => console.error("⚠️ WebSocket Error:", err);
+
+    // 📦 ใส่คิวใหม่
+    function enqueueAlert(name, amount, comment) {
+      alertQueue.push({ name, amount, comment });
+      if (!isPlaying) playNextAlert();
+    }
+
+    // ▶️ เล่น alert ตัวต่อไป
+    async function playNextAlert() {
+      if (alertQueue.length === 0) return;
+      isPlaying = true;
+
+      const { name, amount, comment } = alertQueue.shift();
+      await showAlert(name, amount, comment);
+
+      isPlaying = false;
+      if (alertQueue.length > 0) playNextAlert();
+    }
+
+    // 🎬 แสดง alert + เสียง
+    async function showAlert(name, amount, comment = "") {
+      return new Promise(async (resolve) => {
+        const box = document.createElement("div");
+        box.className = "alert";
+        box.style.borderColor = alertConfig.color || "#69eaff";
+
+        box.innerHTML = `
+  <img src="${alertConfig.popupImage?.startsWith('/uploads/')
+            ? alertConfig.popupImage
+            : '/uploads/' + alertConfig.popupImage}" width="120"><br>
+  🌟 <b style="color:${alertConfig.nameColor || '#ff5ca1'};">ขอบคุณ ${name}</b><br>
+  สำหรับการสนับสนุน <b style="color:${alertConfig.amountColor || '#47ffa1'};">${amount} บาท!</b><br>
+  <span style="font-size:18px;color:${alertConfig.commentColor || '#a7b8ff'};">${comment}</span>
+`;
+
+        document.body.appendChild(box);
+
+        // 💥 ใช้เสียงจาก config
+        const alertSound = new Audio(alertConfig.sound || "alert.mp3");
+        alertSound.volume = 0.9;
+        alertSound.onended = async () => {
+          // รอ 0.3 วิหลังเสียงโดเนท
+          await new Promise(r => setTimeout(r, 300));
+
+          console.log("🔊 เริ่มพูดข้อความ TTS...");
+          await generateTTS(`ขอบคุณ ${name} สำหรับการสนับสนุน ${amount} บาท ${comment || ""}`);
+          resolve();
+        };
+        await alertSound.play().catch(err => console.error("❌ เล่นเสียงไม่ได้:", err));
+
+        // 🌈 เอฟเฟกต์อนุภาค
+        for (let i = 0; i < 30; i++) {
+          const p = document.createElement("div");
+          p.className = "particle";
+          p.style.left = "50%";
+          p.style.top = "50%";
+          p.style.background = `hsl(${Math.random() * 360},100%,70%)`;
+          document.body.appendChild(p);
+          const x = (Math.random() - 0.5) * 800;
+          const y = (Math.random() - 0.5) * 600;
+          const time = 1800 + Math.random() * 1500;
+          p.animate([
+            { transform: `translate(0,0) scale(1)`, opacity: 1 },
+            { transform: `translate(${x}px,${y}px) scale(0.3)`, opacity: 0 }
+          ], { duration: time, easing: "ease-out" });
+          setTimeout(() => p.remove(), time);
+        }
+
+        // ⏳ ลบ alert หลัง 5 วิ
+        setTimeout(() => {
+          box.style.animation = "fadeOut 1.5s forwards";
+          setTimeout(() => box.remove(), 1500);
+        }, 5000);
+      });
+    }
+
+    // 🗣️ ฟังก์ชันพูด (Google TTS)
+  // 🗣️ ฟังก์ชันพูด (Google TTS)
+  // 🗣️ ฟังก์ชันพูด (Google TTS)
+  // 🎤 ฟังก์ชัน Google TTS ที่พร้อมใช้งานกับ OBS
+  async function generateTTS(text) {
+    try {
+      const apiKey = "AIzaSyAZBK3w7-bz8vNJHG3638buKoRRBRQDMWU";
+      const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+      const body = {
+        input: { text },
+        voice: { languageCode: "th-TH", name: "th-TH-Standard-A" },
+        audioConfig: { audioEncoding: "MP3", speakingRate: 0.9 }
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      console.log("🗣️ TTS API Response:", data);
+      if (!data.audioContent) throw new Error("ไม่มีเสียงจาก Google TTS");
+
+
+      // ✅ สร้างเสียงจาก base64
+      const audio = new Audio("data:audio/mp3;base64," + data.audioContent);
+      audio.volume = 1.0;
+
+      // ✅ รอให้ browser อนุญาต แล้วค่อยเล่น
+      await new Promise(r => setTimeout(r, 150)); // รอระบบเสียงพร้อม
+      audio.oncanplaythrough = () => {
+        audio.play().catch(err => console.error("❌ เล่นเสียงพูดไม่ได้:", err));
+      };
+      audio.load();
+
+    } catch (err) {
+      console.error("❌ generateTTS Error:", err);
+    }
+  }
+
+  // 🧩 ปลดล็อกเสียงทันทีหลัง OBS โหลดเสร็จ
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      await ctx.resume();
+      const silent = new Audio("data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA...");
+      silent.volume = 0;
+      await silent.play().catch(() => { });
+      console.log("🔓 เสียงถูกปลดล็อกเรียบร้อยแล้ว (OBS/Chrome)");
+    } catch (err) {
+      console.warn("⚠️ ปลดล็อกเสียงไม่สำเร็จ:", err);
+    }
+  });
+
+  // 🧩 ปุ่มลับ (สำหรับทดสอบเสียง alert แบบ manual)
+  window.addEventListener("click", async () => {
+    const s = new Audio("/alert.mp3");
+    s.volume = 1.0;
+    await s.play();
+    console.log("✅ คลิกแล้ว - ระบบเสียงพร้อมใช้งาน");
+  });
+
+
+  </script>
+
+</body>
+
+</html>

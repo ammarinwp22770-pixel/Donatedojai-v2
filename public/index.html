@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>💖 สนับสนุน H0LLoWx | Donate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue1: #47b3ff;
+      --blue2: #69eaff;
+      --pink: #ff6ad5;
+      --bg: #0b1020;
+      --panel: #141a35;
+      --text: #e9f3ff;
+      --muted: #9aa8d6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+body {
+  margin: 0;
+  font-family: "Prompt", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 50% -100px, #16254f 0%, #0b1020 70%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+    .bg {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, #19306033 0%, transparent 70%),
+        repeating-linear-gradient(45deg, #11203022 0 2px, transparent 2px 4px);
+      animation: bgmove 15s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes bgmove {
+      from {
+        background-position: 0 0, 0 0;
+      }
+
+      to {
+        background-position: 400px 400px, 200px 200px;
+      }
+    }
+
+.card {
+  width: 90%;
+  max-width: 420px;
+  padding: 28px 24px;
+  background: rgba(20, 26, 53, 0.9);
+  border-radius: 22px;
+  box-shadow: 0 0 25px rgba(105, 234, 255, 0.2),
+              inset 0 0 10px rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(105, 234, 255, 0.2);
+  animation: float 4s ease-in-out infinite;
+  position: relative;
+  margin-bottom: 60px; /* ✅ เว้นพื้นที่ footer */
+}
+
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      color: var(--blue2);
+      text-shadow: 0 0 10px var(--blue1);
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    input,
+    textarea,
+    button {
+      font-family: "Prompt";
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    input,
+    textarea {
+      background: #1e254a;
+      color: #fff;
+    }
+
+    input:focus,
+    textarea:focus {
+      box-shadow: 0 0 8px var(--blue1);
+    }
+
+    button {
+      margin-top: 16px;
+      background: linear-gradient(90deg, var(--blue1), var(--blue2));
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--blue2);
+    }
+
+    button:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 0 18px var(--blue2);
+    }
+
+    #qr-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin-top: 20px;
+      min-height: 280px;
+    }
+
+    @keyframes pulse {
+  0% { box-shadow: 0 0 10px var(--blue1); }
+  50% { box-shadow: 0 0 25px var(--blue2); }
+  100% { box-shadow: 0 0 10px var(--blue1); }
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 20px 10px;
+  }
+
+  .card {
+    width: 100%;
+    margin: 0;
+    padding: 22px 16px;
+    border-radius: 18px;
+    box-shadow: 0 0 15px rgba(105, 234, 255, 0.15);
+  }
+
+  h1 {
+    font-size: 1.4rem;
+  }
+
+  input, textarea, button {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  footer {
+    font-size: 12px;
+  }
+}
+
+
+    #qr-box img {
+      border: 3px solid var(--blue2);
+  animation: pulse 1.5s infinite;
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 0 30px rgba(105, 234, 255, 0.3);
+      width: 260px;
+    }
+
+    #loader {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .loader {
+      border: 5px solid #2b2f55;
+      border-top: 5px solid var(--blue2);
+      border-radius: 50%;
+      width: 38px;
+      height: 38px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    #status-box {
+      margin-top: 15px;
+      color: var(--blue2);
+      font-weight: 600;
+      min-height: 24px;
+    }
+
+html, body {
+  height: 100%;
+}
+
+
+footer {
+  position: relative; /* ✅ แก้จาก fixed → relative */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: auto; /* ✅ ดัน footer ลงล่างสุดเมื่อมีพื้นที่ว่าง */
+  padding: 20px 0;
+  background: transparent;
+}
+
+    footer span {
+      color: var(--pink);
+      text-shadow: 0 0 5px var(--pink);
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+    #progress-bar {
+  height: 5px;
+  width: 0;
+  background: linear-gradient(90deg, #47b3ff, #69eaff, #47b3ff);
+  background-size: 200% auto;
+  animation: progressMove 1.5s linear infinite;
+  transition: width .3s;
+  border-radius: 10px;
+}
+
+@keyframes progressMove {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+/* 🎯 ปรับตำแหน่งการ์ดให้อยู่กลางจอจริง ๆ ทั้งมือถือและคอม */
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 380px) !important; /* ✅ ดึงลงเพิ่มอีก 100px */
+  width: 100%;
+  text-align: center;
+}
+
+.card {
+  margin-top: 60px !important;    /* ✅ ดันลงให้บาลานซ์สายตา */
+  margin-bottom: 30px !important;
+}
+
+.privacy-text {
+  margin-top: 50px !important;    /* ✅ เว้นระยะระหว่างการ์ดกับข้อความล่าง */
+  margin-bottom: 60px !important;
+}
+
+footer {
+  margin-top: auto;
+  padding: 20px 0;
+}
+
+
+  </style>
+</head>
+
+<body>
+
+  <div id="progress-bar" style="height:5px;width:0;background:#69eaff;transition:width .3s"></div>
+
+  <main>
+
+  <div class="bg"></div>
+  
+  <div class="card">
+    <h1>💖 สนับสนุน H0LLoWx 💖</h1>
+    <p>สแกน QR เพื่อบริจาคโดยตรงเข้าพร้อมเพย์</p>
+  
+    <textarea id="msg" placeholder="ชื่อของคุณ (จะโชว์บนสตรีม)" rows="2"></textarea>
+    <input type="number" id="amount" placeholder="จำนวนเงิน (บาท)">
+    <input type="text" id="comment" placeholder="ข้อความแสดงบนหน้าจอ เช่น ดูทีม 20 บาท ❤️">
+    <button onclick="generateQR()">⚡ สร้าง QR โดเนท</button>
+  
+    <div id="qr-box"></div>
+    <div id="loader">
+      <div class="loader"></div>
+      <p>🕓 รอการชำระเงินจากแอปธนาคาร...</p>
+    </div>
+    <div id="status-box"></div>
+  </div>
+  
+<div class="privacy-text">
+  🛡️ เว็บไซต์นี้ไม่เก็บข้อมูลส่วนตัวของผู้ใช้งาน
+  ชื่อที่แสดงบนหน้าจอเป็นเพียงชื่อเล่นที่ผู้บริจาคตั้งขึ้นเองเท่านั้น
+  <br><br>
+  <a href="privacy.html" target="_blank" style="color:#69eaff;text-decoration:none;">
+    🔗 อ่านนโยบายความเป็นส่วนตัวฉบับเต็ม
+  </a>
+</div>
+  
+  <footer>© 2025 AMR29 Donatedojai | Designed by <span>AMR29</span></footer>
+
+  </main>
+
+
+  <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+
+<script>
+  // ✅ Auto reconnect WebSocket version
+  function connectWS() {
+    const ws = new WebSocket(
+      (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws"
+    );
+
+    ws.onopen = () => console.log("🟢 WebSocket Connected");
+
+    ws.onclose = () => {
+      console.warn("⚠️ WebSocket Closed, reconnecting...");
+      setTimeout(connectWS, 2000);
+    };
+
+    ws.onmessage = handleMessage;
+    window.ws = ws;
+  }
+
+  function handleMessage(e) {
+    const data = JSON.parse(e.data);
+    console.log("💬 ได้รับข้อมูลจาก server:", data);
+
+    const paidTypes = ["donate", "payment_done", "paid", "success", "complete"];
+    if (paidTypes.includes(data.type)) {
+      showSuccessPopup(); // ✅ popup ขอบคุณ
+      document.getElementById("ding")?.play?.(); // ✅ เล่นเสียง (ถ้ามี)
+
+      // 🔄 เคลียร์หน้าทั้งหมดให้พร้อมสร้าง QR ใหม่
+      $("#qr-box").fadeOut(700, () => {
+        $("#qr-box").empty().show();
+        $("#status-box").html("✅ การชำระเงินสำเร็จ! พร้อมรับโดเนทใหม่ 💖");
+      });
+
+      $("#loader").fadeOut(300);
+      $("#amount, #msg, #comment").val("");
+      if (window.turnstile) turnstile.reset();
+    }
+  }
+
+  connectWS();
+</script>
+
+
+
+  <script>
+    let token = "";
+
+    // ✅ Callback จาก Cloudflare
+    function onTurnstileSuccess(t) {
+      token = t;
+      console.log("✅ Turnstile success:", t);
+      $('#overlay').fadeOut(300);
+      actuallyGenerateQR();
+    }
+
+    // ⚡ กดสร้าง QR → เด้ง CAPTCHA
+    async function generateQR() {
+      token = "";
+      $('#qr-box').empty();
+      $('#status-box').html("");
+      $('#loader').hide();
+
+      $('#overlay').fadeIn(300);
+      $('#turnstile-box').fadeIn(300);
+
+      // 🔁 รีเซ็ต CAPTCHA ทุกครั้ง
+      setTimeout(() => {
+        if (window.turnstile) turnstile.reset();
+      }, 500);
+    }
+
+    // ⚙️ หลังผ่าน CAPTCHA → สร้าง QR จริง
+    async function actuallyGenerateQR() {
+      console.log("🎟️ Token:", token);
+      const amount = parseFloat($('#amount').val());
+      const name = $('#msg').val().trim() || "ไม่ระบุชื่อ";
+      const comment = $('#comment').val().trim() || "";
+      if (!amount) return alert("กรุณาระบุจำนวนเงิน");
+
+
+      $('#progress-bar').css('width', '30%');
+      $('#status-box').html("🕓 กำลังสร้าง QR...");
+      $('#loader').show();
+        try {
+        const res = await fetch("/generateQR", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount, name, comment, token })
+        });
+
+          $('#progress-bar').css('width', '70%');
+
+       const data = await res.json();
+          $('#loader').hide();
+          $('#qr-box').html(`<img src="${data.result}" alt="QR พร้อมเพย์">`);
+          $('#status-box').html(`
+      ⚠️ กรุณาชำระเงินภายใน <b id="timer">05:00</b> นาที<br>
+      หากสแกนแล้วไม่หายไม่ต้องตกใจ<br>
+      รอสักครู่...ให้ระบบตรวจสอบเงินจริงที่โอน
+    `);
+          $('#turnstile-box').fadeOut(300);
+          startCountdown();
+          $('#overlay').fadeOut(300);
+
+          $('#progress-bar').css('width', '100%');
+          setTimeout(() => $('#progress-bar').css('width', '0'), 600);
+
+
+      } catch (err) {
+        console.error(err);
+        $('#status-box').text("❌ เกิดข้อผิดพลาดในการสร้าง QR");
+        $('#progress-bar').css('width', '0');
+      }
+    }
+
+    // 🕒 นับถอยหลัง
+    function startCountdown() {
+      let timeLeft = 300;
+      const timerDisplay = document.getElementById("timer");
+      const countdown = setInterval(() => {
+        timeLeft--;
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, "0");
+        const s = (timeLeft % 60).toString().padStart(2, "0");
+        timerDisplay.textContent = `${m}:${s}`;
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          $('#status-box').html(`
+          ⏰ เกินระยะเวลา 5 นาทีแล้ว<br>
+          <small style="color:#ff6b6b;">กรุณาสร้าง QR ใหม่เพื่อทำรายการอีกครั้ง</small>
+        `);
+          $('#qr-box').fadeOut(800);
+        }
+      }, 1000);
+    }
+  </script>
+
+  <!-- ✅ Turnstile อยู่ล่างสุดหลังประกาศฟังก์ชันทั้งหมด -->
+  <div id="overlay">
+    <div id="turnstile-box"
+      style="background:rgba(20,26,53,0.95);padding:25px;border-radius:20px;box-shadow:0 0 25px #69eaff;text-align:center;">
+      <h3 style="margin-bottom:10px;color:#69eaff;">🔒 ยืนยันก่อนสร้าง QR</h3>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAB6qa7Fg3qEUiBuc" data-callback="onTurnstileSuccess"></div>
+    </div>
+  </div>
+
+<script>
+  // 🚫 ป้องกันการกด F12, Ctrl+Shift+I/J/C และ Ctrl+U/S/P
+  document.addEventListener("keydown", e => {
+    if (
+      e.key === "F12" ||
+      (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key.toUpperCase())) ||
+      (e.ctrlKey && ["U", "S", "P"].includes(e.key.toUpperCase()))
+    ) {
+      e.preventDefault();
+      alert("🚫 ห้ามเปิดเครื่องมือสำหรับนักพัฒนา (Developer Tools)");
+      return false;
+    }
+  });
+
+  // 🚫 ป้องกันคลิกขวา
+  document.addEventListener("contextmenu", e => {
+    e.preventDefault();
+    alert("🚫 คลิกขวาถูกปิดใช้งาน");
+  });
+
+  // 🕵️‍♂️ ตรวจจับ Inspect แบบเปิด Console
+  setInterval(() => {
+    const start = performance.now();
+    debugger;
+    const end = performance.now();
+    if (end - start > 50) {
+      // 🔒 ล้างทุก element ออกจากหน้า
+      document.querySelectorAll("body *").forEach(el => el.remove());
+
+      // 🧱 แสดงข้อความเตือนกลางจอ
+      const warn = document.createElement("div");
+      warn.style.cssText = `
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      background:#0b1020;
+      color:#ff6b6b;
+      font-family:'Prompt',sans-serif;
+      text-align:center;
+      flex-direction:column;
+    `;
+      warn.innerHTML = `
+      <h1>🚫 ห้ามเปิด Developer Tools</h1>
+      <p>หน้านี้จะปิดอัตโนมัติ</p>
+    `;
+      document.body.appendChild(warn);
+
+      // ⏱️ ปิดเว็บใน 1.5 วิ
+      setTimeout(() => window.close(), 1500);
+    }
+  }, 2000);
+</script>
+
+
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+  <!-- ✅ Popup แสดงตอนโดเนทสำเร็จ -->
+  <div id="successPopup" style="
+    display:none;
+    position:fixed;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    background:rgba(15,25,45,.95);
+    border:2px solid #69eaff;
+    border-radius:20px;
+    padding:30px 40px;
+    text-align:center;
+    color:#e9f3ff;
+    box-shadow:0 0 25px #69eaff66;
+    animation:pop 0.5s ease;
+    z-index:9999;">
+    <h2>💖 ขอบคุณที่สนับสนุน!</h2>
+    <p>ระบบตรวจพบการโอนเรียบร้อยแล้ว 🎉</p>
+  </div>
+  
+
+  
+  <script>
+
+
+
+    // ฟังก์ชันเรียก Popup
+    function showSuccessPopup() {
+      const popup = document.getElementById("successPopup");
+      popup.style.display = "block";
+      setTimeout(() => popup.style.display = "none", 3500);
+    }
+  </script>
+
+
+
+</body>
+
+
+
+</html>

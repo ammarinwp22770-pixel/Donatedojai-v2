@@ -1,0 +1,11 @@
+{
+  "sound": "alert.mp3",
+  "color": "#7afdff",
+  "animation": "zoom",
+  "text": "ขอบคุณสำหรับการทดสอบ",
+  "nameColor": "#ff5ca1",
+  "amountColor": "#47ffa1",
+  "commentColor": "#a7b8ff",
+  "popupImage": "/uploads/1760368642492-anime-wow.gif",
+  "minAmount": 10
+}

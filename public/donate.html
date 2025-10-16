@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💖 สนับสนุน H0LLoWx | Donate</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body {
+  margin: 0;
+  background: radial-gradient(1000px 600px at 50% -200px,#0b1020 0%,#0f1b3f 100%);
+  color: #fff;
+  font-family: "Prompt", sans-serif;
+  text-align: center;
+  overflow-x: hidden;
+}
+.card {
+  max-width: 440px;
+  margin: 60px auto;
+  background: rgba(20,25,55,0.9);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 0 35px #47b3ff55;
+  backdrop-filter: blur(8px);
+}
+input, textarea, button {
+  font-family: "Prompt";
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+}
+input, textarea {
+  background: #1e254a;
+  color: #fff;
+}
+button {
+  background: linear-gradient(90deg,#47b3ff,#69eaff);
+  color: #000;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .3s;
+}
+button:hover { transform: scale(1.05); }
+
+#qr-box img {
+  margin-top: 20px;
+  border: 2px solid #69eaff;
+  border-radius: 14px;
+  padding: 8px;
+}
+
+#loader {
+  display: none;
+  margin-top: 15px;
+}
+.loader {
+  border: 5px solid #2b2f55;
+  border-top: 5px solid #69eaff;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+#countdown-box {
+  margin-top: 10px;
+  display: none;
+}
+.progress-bar {
+  height: 10px;
+  width: 100%;
+  background: #2b2f55;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg,#47b3ff,#69eaff);
+  animation: shrink 300s linear forwards;
+}
+@keyframes shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* Popup */
+.popupBox {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%) scale(0.9);
+  background: rgba(15,25,45,0.95);
+  padding: 30px 50px;
+  border: 3px solid #69eaff;
+  border-radius: 24px;
+  color: #fff;
+  font-family: "Prompt";
+  font-size: 20px;
+  text-align: center;
+  box-shadow: 0 0 40px #47b3ff90;
+  z-index: 9999;
+  opacity: 0;
+  transition: all .4s ease;
+}
+.popupBox.show {
+  opacity: 1;
+  transform: translate(-50%,-50%) scale(1);
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>💖 สนับสนุน H0LLoWx 💖</h1>
+  <p>สแกน QR เพื่อบริจาคโดยตรงเข้าบัญชีพร้อมเพย์</p>
+
+  <textarea id="msg" placeholder="ใส่ชื่อ" rows="2"></textarea>
+  <input type="number" id="amount" placeholder="จำนวนเงิน (บาท)">
+  <input type="text" id="comment" placeholder="ข้อความแสดงบนหน้าจอ (เช่น ดูทีม 20 บาท)">
+  <button id="generate-btn" onclick="generateQR()">✨ สร้าง QR</button>
+
+  <div id="qr-box"></div>
+
+  <div id="countdown-box">
+    <p id="countdown-text">⏳ QR จะหมดอายุใน <b>05:00</b></p>
+    <div class="progress-bar"><div class="progress"></div></div>
+  </div>
+
+  <div id="loader"><div class="loader"></div><p>SCAN QRCode ที่ขึ้นอยู่ตรงหน้าได้เลย ไม่ต้องแนบสลิป</p></div>
+  <div id="status-box" style="margin-top:15px;color:#a7b8ff;font-weight:600;"></div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<script>
+let ws;
+let countdownInterval;
+
+// ✅ ฟังก์ชันเชื่อมต่อ WebSocket (auto reconnect)
+function connectWS() {
+  ws = new WebSocket("ws://localhost:3001");
+
+  ws.onopen = () => console.log("🟢 WebSocket เชื่อมต่อแล้ว");
+
+  ws.onclose = () => {
+    console.warn("🔴 WebSocket หลุด! กำลังเชื่อมใหม่ใน 3 วิ...");
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onmessage = e => handleMessage(e);
+}
+connectWS();
+
+// ✅ ฟังก์ชัน popup แทน alert
+function showMessage(text, color="#69eaff") {
+  const box = document.createElement("div");
+  box.className = "popupBox";
+  box.innerHTML = text;
+  box.style.borderColor = color;
+  document.body.appendChild(box);
+  setTimeout(() => box.classList.add("show"), 50);
+  setTimeout(() => {
+    box.style.opacity = 0;
+    box.style.transform = "translate(-50%,-50%) scale(0.8)";
+    setTimeout(() => box.remove(), 800);
+  }, 4500);
+}
+
+// ✅ เมื่อได้ข้อความจาก server
+function handleMessage(e) {
+  const data = JSON.parse(e.data);
+
+  // 🔔 เมื่อมีการโดเนทจริง
+  if (data.type === "donate") {
+    $('#status-box').html(`✅ ขอบคุณ ${data.name} สำหรับการสนับสนุน ${data.amount} บาท 💖`);
+    clearInterval(countdownInterval);
+    $('#countdown-box').hide();
+    $('#qr-box').fadeOut(800, () => $('#qr-box').empty().show());
+    $('#loader').hide();
+    $('#amount, #msg, #comment').val("");
+    showPopup(data.name, data.amount, data.comment);
+  }
+
+  // 🪙 เมื่อระบบยืนยันการชำระ (payment_done)
+  if (data.type === "payment_done") {
+    showMessage(`✅ ${data.name} ชำระสำเร็จ ${data.amount} บาท 🎉`, "#47ffa1");
+    $('#status-box').html(`💖 ขอบคุณ ${data.name} สำหรับการสนับสนุน ${data.amount} บาท!`);
+    $('#loader').hide();
+    $('#qr-box').empty();
+    $('#countdown-box').hide();
+  }
+}
+
+// ✅ ฟังก์ชันสร้าง QR
+async function generateQR() {
+  const amount = parseFloat($('#amount').val());
+  const name = $('#msg').val().trim() || "ไม่ระบุชื่อ";
+  const comment = $('#comment').val().trim() || "";
+
+  if (!amount) return showMessage("⚠️ กรุณาระบุจำนวนเงิน", "#ff6b6b");
+
+  $('#status-box').text("🕓 กำลังสร้าง QR ใหม่...");
+  $('#qr-box').empty();
+  $('#countdown-box').hide();
+
+  try {
+    const res = await fetch("/generateQR", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, name, comment })
+    });
+    const data = await res.json();
+
+    if (data.error) return showMessage("❌ " + data.error, "#ff6b6b");
+
+    $('#qr-box').html(`<img src="${data.result}" width="260">`);
+    $('#status-box').text("🕓 รอการชำระเงินจากแอปธนาคาร...");
+    $('#loader').show();
+    startCountdown(300);
+    showMessage(`✅ QR พร้อมเพย์สร้างสำเร็จ!<br><br>ชื่อ: ${name}<br>จำนวน: ${amount} บาท<br><br>💡 กรุณาชำระภายใน 5 นาที ❤️`);
+  } catch (err) {
+    console.error("❌ QR Error:", err);
+    showMessage("⚠️ เกิดข้อผิดพลาดในการสร้าง QR", "#ff6b6b");
+  }
+}
+
+// ⏳ ฟังก์ชัน Countdown
+function startCountdown(seconds){
+  clearInterval(countdownInterval);
+  $('#countdown-box').show();
+  let timeLeft = seconds;
+  updateText();
+
+  countdownInterval = setInterval(() => {
+    timeLeft--;
+    updateText();
+    if (timeLeft <= 0){
+      clearInterval(countdownInterval);
+      $('#qr-box').empty();
+      $('#countdown-box').hide();
+      $('#status-box').html("⏰ QR หมดอายุแล้ว โปรดสร้างใหม่อีกครั้ง 💔");
+      $('#loader').hide();
+    }
+  }, 1000);
+
+  function updateText(){
+    const m = Math.floor(timeLeft / 60);
+    const s = (timeLeft % 60).toString().padStart(2,'0');
+    $('#countdown-text').html(`⏳ QR จะหมดอายุใน <b>${m}:${s}</b>`);
+    $('#countdown-text').css("color", timeLeft <= 60 ? "#ff6b6b" : "#a7b8ff");
+  }
+}
+
+// 💖 Popup ขอบคุณเมื่อจ่ายจริง
+function showPopup(name, amount, comment){
+  const div = document.createElement("div");
+  Object.assign(div.style, {
+    position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%) scale(0.9)",
+    background:"rgba(15,25,45,0.95)",padding:"25px 40px",border:"3px solid #69eaff",
+    borderRadius:"24px",color:"#fff",fontFamily:"Prompt",fontSize:"22px",
+    boxShadow:"0 0 40px #47b3ff90",textAlign:"center",zIndex:9999,transition:"all .4s ease"
+  });
+  div.innerHTML = `
+    💖 ขอบคุณ <b>${name}</b><br>
+    สำหรับการสนับสนุน <b>${amount} บาท!</b><br>
+    💬 <i>${comment || ""}</i><br><br>
+    🙏 ระบบได้บันทึกโดเนทของคุณเรียบร้อยแล้ว 💞
+  `;
+  document.body.appendChild(div);
+  const sound = new Audio("alert.mp3"); sound.play();
+  setTimeout(()=>{ div.style.opacity=0; div.style.transform="translate(-50%,-50%) scale(0.7)";
+    setTimeout(()=>div.remove(),800);
+  },7000);
+}
+</script>
+</body>
+</html>

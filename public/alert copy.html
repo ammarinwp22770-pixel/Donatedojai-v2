@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <title>💖 H0LLoWx Donate Alert 💖</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --neon: #69eaff;
+      --neon2: #47b3ff;
+      --bg: #0b1020;
+      --text: #e9f3ff;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+      color: var(--text);
+      font-family: "Prompt", sans-serif;
+    }
+
+    .alert {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: radial-gradient(circle at top left, #132043, #0b1020);
+      border: 2.5px solid var(--neon2);
+      border-radius: 25px;
+      padding: 36px 60px;
+      text-align: center;
+      font-size: 30px;
+      color: var(--text);
+      box-shadow: 0 0 60px var(--neon2);
+      opacity: 0;
+      animation: popIn 1s ease forwards, floaty 2s ease-in-out 1s infinite alternate;
+    }
+
+    .alert::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 25px;
+      padding: 3px;
+      background: linear-gradient(135deg, var(--neon2), var(--neon), #fff0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      animation: glowMove 4s linear infinite;
+    }
+
+    @keyframes glowMove {
+      0% {
+        opacity: 0.8;
+        filter: hue-rotate(0deg);
+      }
+
+      100% {
+        opacity: 1;
+        filter: hue-rotate(360deg);
+      }
+    }
+
+    @keyframes popIn {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+      }
+
+      60% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    @keyframes floaty {
+      0% {
+        transform: translate(-50%, -48%) scale(1);
+      }
+
+      100% {
+        transform: translate(-50%, -52%) scale(1.03);
+      }
+    }
+
+    @keyframes fadeOut {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+      }
+    }
+
+    .particle {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: var(--neon);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0.9;
+      filter: blur(2px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <script>
+    const ws = new WebSocket("ws://localhost:3001");
+
+    ws.onmessage = e => {
+      const data = JSON.parse(e.data);
+      if (data.type === "donate" || data.type === "test") {
+        showAlert(data.name, data.amount, data.comment || "ขอบคุณสำหรับการสนับสนุน 💖");
+      }
+    };
+
+    function showAlert(name, amount, comment = "") {
+      const box = document.createElement("div");
+      box.className = "alert";
+      box.innerHTML = `
+    🌟 <b style="color:#69eaff;">ขอบคุณ ${name}</b><br>
+    สำหรับการสนับสนุน <b style="color:#47ffa1;">${amount} บาท!</b><br>
+    <span style="font-size:18px;color:#a7b8ff;">${comment}</span>
+  `;
+      document.body.appendChild(box);
+
+      const sound = new Audio("alert.mp3");
+      sound.volume = 0.9;
+
+      // 🎤 ตั้ง listener ก่อนเริ่มเล่น
+      sound.onended = async () => {
+        console.log("🔊 เสียง alert.mp3 จบแล้ว... รอ 1.5 วิก่อนอ่านเสียง");
+
+        // 🕒 หน่วงเวลา 1.5 วิก่อนพูด
+        await new Promise(r => setTimeout(r, 0));
+
+        await speakThaiWithGoogle(`ขอบคุณ ${name} สำหรับการสนับสนุน ${amount} บาท ${comment || ""}`);
+      };
+
+      // ▶️ แล้วค่อยเริ่มเล่นเสียง
+      sound.play();
+
+      // 🗣️ อ่านออกเสียงข้อความด้วย Google Cloud TTS (หญิงไทย)
+      async function speakThaiWithGoogle(text) {
+        try {
+          const apiKey = "AIzaSyAZBK3w7-bz8vNJHG3638buKoRRBRQDMWU"; // <--- API Key ของเฟอ
+          const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`;
+
+          const body = {
+            input: { text },
+            voice: { languageCode: "th-TH", name: "th-TH-Standard-A" },
+            audioConfig: {
+              audioEncoding: "MP3",
+              speakingRate: 0.9,
+              pitch: 0.0
+            }
+          };
+
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+
+          const data = await response.json();
+          if (!data.audioContent) throw new Error("ไม่มีเสียงจาก API");
+
+          // 🔊 เล่นเสียงจาก Google Cloud
+          const audio = new Audio("data:audio/mp3;base64," + data.audioContent);
+          audio.volume = 1.0;
+          await audio.play();
+
+        } catch (err) {
+          console.error("❌ Google TTS Error:", err);
+        }
+      }
+
+
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement("div");
+        p.className = "particle";
+        p.style.left = "50%";
+        p.style.top = "50%";
+        p.style.background = `hsl(${Math.random() * 360},100%,70%)`;
+        document.body.appendChild(p);
+        const x = (Math.random() - 0.5) * 800;
+        const y = (Math.random() - 0.5) * 600;
+        const time = 1800 + Math.random() * 1500;
+        p.animate([
+          { transform: `translate(0,0) scale(1)`, opacity: 1 },
+          { transform: `translate(${x}px,${y}px) scale(0.3)`, opacity: 0 }
+        ], { duration: time, easing: "ease-out" });
+        setTimeout(() => p.remove(), time);
+      }
+
+      setTimeout(() => {
+        box.style.animation = "fadeOut 1.5s forwards";
+        setTimeout(() => box.remove(), 1500);
+      }, 15000);
+    }
+  </script>
+
+</body>
+
+</html>

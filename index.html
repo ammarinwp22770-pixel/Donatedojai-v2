@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💖 สนับสนุน H0LLoWx | Donate</title>
+  <style>
+    body { font-family: "Prompt", sans-serif; background:#0b1020; color:#e9f3ff; text-align:center; }
+    input, button { padding:10px; font-size:16px; border-radius:8px; margin:5px; }
+    #qr-box img { width:300px; margin-top:20px; border-radius:12px; }
+  </style>
+</head>
+<body>
+  <h1>💖 สนับสนุน H0LLoWx 💖</h1>
+  <p>สแกน QR เพื่อบริจาคโดยตรง</p>
+  <input type="number" id="amount" placeholder="จำนวนเงิน (บาท)">
+  <button onclick="generateQR()">สร้าง QR</button>
+  <button onclick="testDonate()">💥 ทดสอบโดเนท</button>
+  <div id="qr-box"></div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+  <script>
+    const ws = new WebSocket("ws://localhost:3001"); // เชื่อมกับ OBS Alert Server
+
+    async function generateQR(){
+      const amount = parseFloat($('#amount').val());
+      if(!amount){ alert('กรุณากรอกจำนวนเงิน'); return; }
+
+      const res = await fetch("http://localhost:3000/generateQR", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount })
+      });
+      const data = await res.json();
+      $('#qr-box').html(`<img src="${data.result}">`); 
+    }
+
+    function testDonate() {
+  const amount = $('#amount').val() || 99; // ถ้าไม่กรอกจะใช้ค่า 99
+  ws.send(JSON.stringify({
+    type: "donate",
+    name: "ผู้ทดสอบระบบ 🧠",
+    amount: parseFloat(amount)
+  }));
+  alert('ส่งแจ้งเตือนทดสอบไปที่ OBS แล้ว ✅');
+}
+  </script>
+</body>
+</html>

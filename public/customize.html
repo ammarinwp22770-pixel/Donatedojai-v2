@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>🎛️ ตั้งค่า Alert | H0LLoWx Donate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #131a35;
+            --accent: #69eaff;
+            --text: #e9f3ff;
+        }
+
+        body {
+            font-family: "Prompt", sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 30px;
+            background: var(--panel);
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, .4);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent);
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        input[type="color"],
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+            margin-top: 6px;
+            background: #1b2244;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        button {
+            margin-top: 25px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.25s;
+        }
+
+        button:hover {
+            background: #8ef1ff;
+            color: #0b1020;
+        }
+
+        .preview-box {
+            margin-top: 30px;
+            text-align: center;
+            background: rgba(105, 234, 255, 0.05);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(105, 234, 255, .3);
+        }
+
+        .preview-live {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .alert-box {
+            display: inline-block;
+            padding: 30px 50px;
+            border-radius: 20px;
+            background: radial-gradient(circle at top left, #132043, #0b1020);
+            border: 3px solid #69eaff;
+            box-shadow: 0 0 30px #47b3ff;
+            animation: popIn 0.8s ease forwards;
+        }
+
+        .alert-box img {
+            width: 120px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .alert-box .donor {
+            font-size: 26px;
+            color: #ff5ca1;
+        }
+
+        .alert-box .amount {
+            font-size: 22px;
+            color: #47ffa1;
+        }
+
+        .alert-box .comment {
+            font-size: 18px;
+            color: #a7b8ff;
+        }
+
+        #popupPreview {
+            display: block;
+            margin-top: 10px;
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.7);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        small {
+            color: #a7b8ff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎛️ ตั้งค่า Alert Donate</h1>
+
+        <label>💬 ข้อความแจ้งเตือน</label>
+        <input type="text" id="alertText" placeholder="เช่น ขอบคุณสำหรับการสนับสนุน 💖">
+
+        <label>🎨 สีกรอบ Alert</label>
+        <input type="color" id="alertColor" value="#69eaff">
+
+        <label>💫 เอฟเฟกต์</label>
+        <select id="alertEffect">
+            <option value="pop">Pop In</option>
+            <option value="slide">Slide Up</option>
+            <option value="zoom">Zoom</option>
+        </select>
+
+        <label>🌟 สีชื่อผู้บริจาค</label>
+        <input type="color" id="nameColor" value="#ff5ca1">
+
+        <label>💰 สีจำนวนเงิน</label>
+        <input type="color" id="amountColor" value="#47ffa1">
+
+        <label>💬 สีข้อความท้าย</label>
+        <input type="color" id="commentColor" value="#a7b8ff">
+
+        <label>🔊 เสียงแจ้งเตือน</label>
+        <input type="file" id="soundFile" accept="audio/*">
+        <small>หรือจะใช้ alert.mp3 เดิมในระบบก็ได้</small>
+        <br><span class="sound-label" style="color:#a7b8ff;font-size:14px;"></span>
+
+        <label>🖼️ รูป Popup</label>
+        <input type="file" id="popupUpload" accept="image/*">
+        <img id="popupPreview" src="/uploads/default.png" alt="preview">
+        <small>เลือกรูปที่จะโชว์ตอน Alert เด้ง (เช่น โลโก้, สติ๊กเกอร์, GIF)</small>
+        <br><span class="popup-label" style="color:#a7b8ff;font-size:14px;"></span>
+
+        <div class="preview-box">
+            <button id="previewBtn">🎧 ทดสอบ Alert</button>
+        </div>
+
+        <div id="livePreview" class="preview-live">
+            <div class="alert-box">
+                <img id="previewImage" src="/uploads/default.png" alt="popup"><br>
+                <span class="donor">🌟 ขอบคุณ <b>H0LLoWx</b></span><br>
+                <span class="amount">สำหรับการสนับสนุน <b>99 บาท!</b></span><br>
+                <span class="comment">ขอบคุณสำหรับการสนับสนุน 💖</span>
+            </div>
+        </div>
+
+        <button id="saveBtn">💾 บันทึกการตั้งค่า</button>
+    </div>
+
+    <script>
+        // 🔐 ตรวจสอบสิทธิ์
+        if (localStorage.getItem("auth") !== "ok") window.location.href = "login.html";
+
+        // ตัวแปรหลัก
+        const alertText = document.getElementById("alertText");
+        const alertColor = document.getElementById("alertColor");
+        const alertEffect = document.getElementById("alertEffect");
+        const soundFile = document.getElementById("soundFile");
+        const previewBtn = document.getElementById("previewBtn");
+        const nameColor = document.getElementById("nameColor");
+        const amountColor = document.getElementById("amountColor");
+        const commentColor = document.getElementById("commentColor");
+        const popupUpload = document.getElementById("popupUpload");
+        const popupPreview = document.getElementById("popupPreview");
+        const previewImage = document.getElementById("previewImage");
+
+        // ✅ อัปโหลด popup image
+        popupUpload.onchange = async () => {
+            if (!popupUpload.files[0]) {
+                popupPreview.src = "/uploads/default.png";
+                previewImage.src = "/uploads/default.png";
+                document.querySelector(".popup-label").textContent = "";
+                localStorage.removeItem("popupImageName");
+                return;
+            }
+
+            const file = popupUpload.files[0];
+            const tempURL = URL.createObjectURL(file);
+            popupPreview.src = tempURL;
+            previewImage.src = tempURL;
+            document.querySelector(".popup-label").textContent = `อัปโหลด: ${file.name}`;
+
+            const formData = new FormData();
+            formData.append("popupImage", file);
+
+            try {
+                const res = await fetch("/upload-popup", { method: "POST", body: formData });
+                const data = await res.json();
+
+                if (data.path) {
+                    const finalPath = data.path.startsWith('/uploads/') ? data.path : `/uploads/${data.path}`;
+                    localStorage.setItem("popupImageName", finalPath);
+                    popupPreview.src = finalPath;
+                    previewImage.src = finalPath;
+                    console.log("✅ อัปโหลดสำเร็จ:", finalPath);
+                } else {
+                    console.error("⚠️ ไม่พบ path จาก server:", data);
+                }
+            } catch (err) {
+                console.error("❌ อัปโหลดภาพไม่สำเร็จ:", err);
+            }
+        };
+
+        // ✅ โหลดภาพเก่ากลับมาเมื่อรีเฟรช
+        window.addEventListener("load", () => {
+            const savedImage = localStorage.getItem("popupImageName");
+            if (savedImage) {
+                popupPreview.src = savedImage;
+                previewImage.src = savedImage;
+                document.querySelector(".popup-label").textContent = `ใช้รูป: ${savedImage.split('/').pop()}`;
+            }
+        });
+
+        // ✅ ปุ่มทดสอบ Alert
+        previewBtn.onclick = async () => {
+            const text = alertText.value || "ขอบคุณสำหรับการสนับสนุน 💖";
+            const color = alertColor.value;
+            const effect = alertEffect.value;
+
+            try {
+                const res = await fetch("/customize-test", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text, color, effect })
+                });
+                const result = await res.json();
+                if (result.ok) console.log("🚀 ส่ง alert_test ไป OBS แล้ว!");
+            } catch (err) {
+                console.error("❌ ส่ง alert_test ไม่ได้:", err);
+            }
+
+            // 🔊 ทดสอบเสียง
+            try {
+                let audio;
+                if (soundFile.files[0]) {
+                    const fileURL = URL.createObjectURL(soundFile.files[0]);
+                    audio = new Audio(fileURL);
+                } else {
+                    audio = new Audio("./alert.mp3");
+                }
+                audio.volume = 1.0;
+                await audio.play();
+            } catch (err) {
+                console.error("⚠️ เล่นเสียงไม่ได้:", err);
+            }
+        };
+
+        // 🎨 อัปเดต preview สด
+        function updateLivePreview() {
+            const box = document.querySelector('.alert-box');
+            if (!box) return;
+            box.style.borderColor = alertColor.value;
+            box.style.boxShadow = `0 0 30px ${alertColor.value}`;
+            box.querySelector('.donor').style.color = nameColor.value;
+            box.querySelector('.amount').style.color = amountColor.value;
+            box.querySelector('.comment').style.color = commentColor.value;
+            box.querySelector('.comment').textContent = alertText.value || 'ขอบคุณสำหรับการสนับสนุน 💖';
+        }
+        [alertColor, alertText, nameColor, amountColor, commentColor].forEach(el => el.addEventListener('input', updateLivePreview));
+        window.addEventListener('load', updateLivePreview);
+
+        // ✅ ปุ่มบันทึก config
+        document.getElementById("saveBtn").onclick = async () => {
+            const newConfig = {
+                sound: soundFile.files[0]
+                    ? soundFile.files[0].name
+                    : localStorage.getItem("customSound") || "alert.mp3",
+                color: alertColor.value,
+                animation: alertEffect.value,
+                text: alertText.value || "ขอบคุณสำหรับการสนับสนุน 💖",
+                nameColor: nameColor.value,
+                amountColor: amountColor.value,
+                commentColor: commentColor.value,
+                popupImage: localStorage.getItem("popupImageName") || "default.png",
+                minAmount: 10
+            };
+
+            try {
+                const res = await fetch("/save-config", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(newConfig)
+                });
+                const data = await res.json();
+                if (data.ok) alert("✅ บันทึกสำเร็จ! (OBS จะอัปเดตอัตโนมัติ)");
+            } catch (err) {
+                console.error("❌ บันทึก config ไม่ได้:", err);
+            }
+        };
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,50 @@
+body {
+  background: linear-gradient(180deg,#0b1020,#0e1530);
+  font-family: "Prompt", sans-serif;
+  color: #e9f3ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+.card {
+  background: #131a35;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.4);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+input,textarea,button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-family: "Prompt";
+}
+input,textarea {
+  background: #1a2450;
+  color: #fff;
+}
+button {
+  background: #69eaff;
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover {
+  background: #7beeff;
+}
+ul {
+  text-align: left;
+  padding: 0;
+  list-style: none;
+  margin-top: 10px;
+}
+li {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+}

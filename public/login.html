@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <title>🔒 เข้าสู่ระบบ | H0LLoWx Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0b1020;
+            color: #e9f3ff;
+            font-family: "Prompt", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        input {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            width: 220px;
+            margin-bottom: 10px;
+            background: #131a35;
+            color: #fff;
+        }
+
+        button {
+            background: #69eaff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🔒 เข้าสู่ระบบ H0LLoWx Admin</h2>
+    <input type="password" id="pass" placeholder="รหัสผ่าน">
+    <button onclick="login()">เข้าสู่ระบบ</button>
+
+    <script>
+        const SECRET = "1915"; // 👉 ตั้งรหัสที่ต้องการ
+        function login() {
+            const input = document.getElementById("pass").value;
+            if (input === SECRET) {
+                localStorage.setItem("auth", "ok");
+                window.location.href = "customize.html";
+            } else {
+                alert("❌ รหัสไม่ถูกต้อง");
+            }
+        }
+    </script>
+</body>
+
+</html>

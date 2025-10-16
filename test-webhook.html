@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>🔔 ทดสอบ Webhook โดเนท</title>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body {
+  background:#0b1020; color:#e9f3ff; font-family:"Prompt",sans-serif;
+  text-align:center; margin-top:80px;
+}
+input, button {
+  font-family:"Prompt"; font-size:16px; padding:10px 12px;
+  border-radius:10px; border:none; margin:8px;
+}
+input {
+  width:280px; background:#1e254a; color:#fff;
+}
+button {
+  background:linear-gradient(90deg,#47b3ff,#69eaff);
+  color:#000; font-weight:700; cursor:pointer;
+  transition:0.2s; box-shadow:0 0 10px #47b3ff80;
+}
+button:hover {transform:scale(1.05);}
+</style>
+</head>
+<body>
+  <h1>🧪 ทดสอบส่งข้อมูล /bankhook</h1>
+  <input id="text" value="รับเงินจำนวน 50.00 บาท จาก นายเฟอ"><br>
+  <button onclick="send()">🚀 ส่งข้อมูลทดสอบ</button>
+
+  <p id="result" style="margin-top:20px; color:#69eaff;"></p>
+
+  <script>
+  async function send(){
+    const text = document.getElementById("text").value;
+    const res = await fetch("http://localhost:3000/bankhook", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ text })
+    });
+    const data = await res.json();
+    document.getElementById("result").innerText = "✅ ส่งเรียบร้อย! → " + JSON.stringify(data);
+  }
+  </script>
+</body>
+</html>

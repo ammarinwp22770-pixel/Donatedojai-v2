@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>OBS Donate Alert</title>
+<style>
+  body{margin:0;background:transparent;color:white;
+  font-family:"Prompt",sans-serif;text-align:center;}
+  #alert{
+    position:absolute;top:40%;left:50%;
+    transform:translate(-50%,-50%);
+    background:rgba(255,255,255,0.1);
+    border:2px solid #69eaff;border-radius:18px;
+    padding:20px 40px;font-size:28px;
+    text-shadow:0 0 10px #69eaff;opacity:0;
+    transition:opacity .3s, transform .3s;
+  }
+  #alert.show{opacity:1;transform:translate(-50%,-50%) scale(1.1);}
+</style>
+</head>
+<body>
+  <audio id="ding" src="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3"></audio>
+  <div id="alert"></div>
+  <script>
+    const ws = new WebSocket("ws://localhost:3001");
+    const alertBox = document.getElementById("alert");
+    const ding = document.getElementById("ding");
+
+    ws.onmessage = e => {
+      const data = JSON.parse(e.data);
+      if(data.type === "donate"){
+        alertBox.innerHTML = `🎉 ${data.name} โดเนท ${data.amount} บาท 💖`;
+        alertBox.classList.add("show");
+        ding.play();
+        setTimeout(() => alertBox.classList.remove("show"), 6000);
+      }
+    };
+  </script>
+</body>
+</html>

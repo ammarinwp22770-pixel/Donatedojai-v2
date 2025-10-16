@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>💖 สนับสนุน H0LLoWx | Donate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --blue1: #47b3ff;
+            --blue2: #69eaff;
+            --pink: #ff6ad5;
+            --bg: #0b1020;
+            --panel: #141a35;
+            --text: #e9f3ff;
+            --muted: #9aa8d6;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: "Prompt", sans-serif;
+            color: var(--text);
+            background: radial-gradient(circle at 50% -100px, #16254f 0%, #0b1020 70%);
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        /* 🌌 พื้นหลังเคลื่อนไหว */
+        .bg {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at center, #19306033 0%, transparent 70%),
+                repeating-linear-gradient(45deg, #11203022 0 2px, transparent 2px 4px);
+            animation: bgmove 15s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes bgmove {
+            from {
+                background-position: 0 0, 0 0;
+            }
+
+            to {
+                background-position: 400px 400px, 200px 200px;
+            }
+        }
+
+        /* 💳 การ์ดกลาง */
+        .card {
+            max-width: 420px;
+            margin: 70px auto;
+            padding: 28px;
+            background: rgba(20, 26, 53, .9);
+            border-radius: 22px;
+            box-shadow: 0 0 25px rgba(105, 234, 255, .2),
+                inset 0 0 10px rgba(255, 255, 255, .05);
+            border: 1px solid rgba(105, 234, 255, .2);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            color: var(--blue2);
+            text-shadow: 0 0 10px var(--blue1);
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: var(--muted);
+            margin-bottom: 18px;
+        }
+
+        /* 🧾 ช่องกรอก */
+        input,
+        textarea,
+        button {
+            font-family: "Prompt";
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: .3s;
+        }
+
+        input,
+        textarea {
+            background: #1e254a;
+            color: #fff;
+        }
+
+        input:focus,
+        textarea:focus {
+            box-shadow: 0 0 8px var(--blue1);
+        }
+
+        /* ✨ ปุ่ม */
+        button {
+            margin-top: 16px;
+            background: linear-gradient(90deg, var(--blue1), var(--blue2));
+            color: #000;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--blue2);
+        }
+
+        button:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 0 18px var(--blue2);
+        }
+
+        /* 🌀 QR */
+        #qr-box img {
+            margin-top: 22px;
+            border: 2px solid var(--blue2);
+            border-radius: 16px;
+            padding: 10px;
+            box-shadow: 0 0 30px rgba(105, 234, 255, .3);
+            width: 260px;
+        }
+
+        #loader {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .loader {
+            border: 5px solid #2b2f55;
+            border-top: 5px solid var(--blue2);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+
+        #status-box {
+            margin-top: 15px;
+            color: var(--blue2);
+            font-weight: 600;
+            min-height: 24px;
+        }
+
+        /* 💞 footer */
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        footer span {
+            color: var(--pink);
+            text-shadow: 0 0 5px var(--pink);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg"></div>
+
+    <div class="card">
+        <h1>💖 สนับสนุน H0LLoWx 💖</h1>
+        <p>สแกน QR เพื่อบริจาคโดยตรงเข้าพร้อมเพย์</p>
+
+        <textarea id="msg" placeholder="ชื่อของคุณ (จะโชว์บนสตรีม)" rows="2"></textarea>
+        <input type="number" id="amount" placeholder="จำนวนเงิน (บาท)">
+        <input type="text" id="comment" placeholder="ข้อความแสดงบนหน้าจอ เช่น ดูทีม 20 บาท ❤️">
+        <button onclick="generateQR()">⚡ สร้าง QR โดเนท</button>
+
+        <div id="qr-box"></div>
+        <div id="loader">
+            <div class="loader"></div>
+            <p>🕓 รอการชำระเงินจากแอปธนาคาร...</p>
+        </div>
+        <div id="status-box"></div>
+    </div>
+
+    <footer>© 2025 AMR29 Donatedojai | Designed by <span>AMR29
+            <link rel="stylesheet" href="https://www.youtube.com/@H0LLoWx">
+        </span></footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script>
+        const ws = new WebSocket("ws://localhost:3001");
+        ws.onmessage = e => {
+            const data = JSON.parse(e.data);
+            if (data.type === "donate" || data.type === "payment_done") {
+                $("#qr-box").fadeOut(700, () => $("#qr-box").empty().show());
+                $("#loader").hide();
+                $("#amount,#msg,#comment").val("");
+                $("#status-box").html("✅ การชำระเงินสำเร็จ! พร้อมรับโดเนทใหม่ 💖");
+            }
+        };
+        async function generateQR() {
+            const amount = parseFloat($('#amount').val());
+            const name = $('#msg').val().trim() || "ไม่ระบุชื่อ";
+            const comment = $('#comment').val().trim() || "";
+            if (!amount) return alert("กรุณาระบุจำนวนเงิน");
+            $('#status-box').text("🕓 กำลังสร้าง QR...");
+            $('#qr-box').empty(); $('#loader').show();
+            try {
+                const res = await fetch("/generateQR", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ amount, name, comment })
+                });
+                const data = await res.json();
+                $('#qr-box').html(`<img src="${data.result}" alt="QR พร้อมเพย์">`);
+                $('#status-box').text("📲 สแกนเพื่อชำระเงินได้เลย");
+            } catch (err) {
+                $('#status-box').text("❌ เกิดข้อผิดพลาดในการสร้าง QR");
+            }
+        }
+    </script>
+</body>
+
+</html>

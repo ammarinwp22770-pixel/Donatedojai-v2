@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>💖 H0LLoWx Event List</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: rgba(0, 0, 0, 0);
+      font-family: "Prompt", sans-serif;
+      color: #e9f3ff;
+      overflow: hidden;
+    }
+
+    .event-list {
+      width: 400px;
+      height: 100vh;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #47b3ff50 transparent;
+    }
+
+    .event-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .event-list::-webkit-scrollbar-thumb {
+      background: #47b3ff90;
+      border-radius: 3px;
+    }
+
+    .event {
+      background: rgba(25, 35, 70, 0.85);
+      border: 2px solid #47b3ff60;
+      border-radius: 10px;
+      padding: 10px 14px;
+      box-shadow: 0 0 12px rgba(105, 234, 255, 0.2);
+      animation: slideIn 0.3s ease;
+      margin-bottom: 10px;
+    }
+
+    .event strong {
+      color: #69eaff;
+    }
+
+    .amount {
+      color: #47ffa1;
+      font-weight: 700;
+    }
+
+    .comment {
+      font-size: 14px;
+      color: #a7b8ff;
+    }
+
+    .time {
+      font-size: 12px;
+      color: #8fa0cc;
+      text-align: right;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="event-list" id="event-list"></div>
+
+  <script>
+    // ✅ โหลดประวัติโดเนทเก่ามาแสดงก่อน
+    async function loadOldEvents() {
+      try {
+        const res = await fetch("/donates");
+        const data = await res.json();
+        const list = document.getElementById("event-list");
+
+        // ✅ โหลดแค่ 30 รายการล่าสุด (กันหน่วง)
+        data.slice(0, 30).forEach(d => {
+          const box = document.createElement("div");
+          box.className = "event";
+          box.innerHTML = `
+            <div><strong>${d.name}</strong> <span class="amount">฿${d.amount}</span></div>
+            <div class="comment">"${d.comment || '— ไม่มีข้อความ —'}"</div>
+            <div class="time">${d.time}</div>
+          `;
+          list.prepend(box);
+        });
+
+        console.log("✅ โหลดประวัติโดเนทล่าสุดแล้ว");
+      } catch (err) {
+        console.error("❌ โหลดข้อมูลเก่าไม่สำเร็จ:", err);
+      }
+    }
+
+    // ✅ เพิ่ม event ใหม่ (โดเนทสด)
+    function addEvent(d) {
+      const box = document.createElement("div");
+      box.className = "event";
+      box.innerHTML = `
+        <div><strong>${d.name}</strong> <span class="amount">฿${d.amount}</span></div>
+        <div class="comment">"${d.comment || '— ไม่มีข้อความ —'}"</div>
+        <div class="time">${new Date().toLocaleTimeString('th-TH')}</div>
+      `;
+
+      const list = document.getElementById("event-list");
+      list.prepend(box);
+
+      // จำกัดสูงสุด 50 รายการ
+      if (list.children.length > 50) list.removeChild(list.lastChild);
+
+      list.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // ✅ ฟังก์ชันเชื่อมต่อ WebSocket
+    function connectWS() {
+      const ws = new WebSocket(
+        (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws"
+      );
+
+      ws.onopen = () => console.log("✅ Connected to WebSocket (Event List)");
+      ws.onclose = () => {
+        console.warn("⚠️ Connection lost. Reconnecting...");
+        setTimeout(connectWS, 3000);
+      };
+      ws.onerror = err => console.error("❌ WS Error:", err);
+
+      ws.onmessage = e => {
+        const data = JSON.parse(e.data);
+        if (["donate", "test", "alert_repeat"].includes(data.type)) {
+          addEvent(data);
+        }
+      };
+    }
+
+    // 🚀 โหลดข้อมูลเก่าก่อน แล้วค่อยเชื่อม WebSocket
+    loadOldEvents().then(connectWS);
+  </script>
+</body>
+
+</html>
