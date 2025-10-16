@@ -95,28 +95,6 @@
       box-shadow: 0 0 8px var(--accent);
     }
 
-    .pagination {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .pagination button {
-      background: #1c2448;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      border-radius: 8px;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-
-    .pagination button:hover {
-      background: var(--accent);
-      color: #000;
-    }
-
     .total-box {
       text-align: right;
       margin-top: 15px;
@@ -150,105 +128,64 @@
       </thead>
       <tbody></tbody>
     </table>
-
-    <div class="pagination" id="pagination"></div>
     <div class="total-box" id="totalBox">รวมทั้งหมด: 0 บาท</div>
   </div>
 
-  <script>
-    // 📁 ตัวอย่างข้อมูลโดเนท (ในระบบจริงดึงจาก donates.json หรือ API)
-    let donations = [];
-      
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-    // 🔁 เรียงวันที่ใหม่สุดไว้บน
-    donations.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 🔧 ตั้งค่า Firebase Web Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD87T454K1Eb0KDAb-cSCjGCKb3OM3Qh4w",
+      authDomain: "donatedojai.firebaseapp.com",
+      projectId: "donatedojai",
+      storageBucket: "donatedojai.appspot.com",
+      messagingSenderId: "608712306933",
+      appId: "1:608712306933:web:11bbe7749e0fe5534dd5bc"
+    };
 
-    let currentPage = 1;
-    const rowsPerPage = 10;
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    async function loadDonations() {
-        try {
-          const res = await fetch("/donates");
-          const data = await res.json();
+    // 📡 ดึงข้อมูลแบบเรียลไทม์
+    const q = query(collection(db, "donations"), orderBy("time", "desc"));
+    onSnapshot(q, (snapshot) => {
+      const tbody = document.querySelector("#donateTable tbody");
+      tbody.innerHTML = "";
 
-          // เรียงจากใหม่สุดไปเก่าสุด
-          donations = data.sort((a, b) => new Date(b.time) - new Date(a.time));
-          renderTable();
-        } catch (err) {
-          console.error("❌ โหลดข้อมูลไม่ได้:", err);
-        }
-      }
+      let total = 0;
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        total += parseFloat(d.amount) || 0;
 
-      function renderTable() {
-        const start = (currentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        const pageData = donations.slice(start, end);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.time}</td>
+          <td>${d.name}</td>
+          <td>${parseFloat(d.amount).toFixed(2)} บาท</td>
+          <td>PromptPay</td>
+          <td>${d.comment || ""}</td>
+          <td><button class="alert-btn" onclick="playAlert('${d.name}','${d.amount}','${d.comment || ''}')">Alert 🔔</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
 
-        const tbody = document.querySelector("#donateTable tbody");
-        tbody.innerHTML = "";
+      document.getElementById("totalBox").innerText = `รวมทั้งหมด: ${total.toFixed(2)} บาท`;
+    });
 
-        pageData.forEach(d => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-        <td>${d.time || "-"}</td>
-        <td>${d.name}</td>
-        <td>${d.amount.toFixed(2)} บาท</td>
-        <td>${d.channel || "PromptPay"}</td>
-        <td>${d.comment || ""}</td>
-        <td><button class="alert-btn" onclick="playAlert('${d.name}','${d.amount}','${d.comment || ''}')">Alert 🔔</button></td>
-      `;
-          tbody.appendChild(tr);
-        });
-
-        renderPagination();
-        renderTotal();
-      }
-
-      function renderPagination() {
-        const totalPages = Math.ceil(donations.length / rowsPerPage);
-        const pag = document.getElementById("pagination");
-        pag.innerHTML = `
-      <button onclick="goPage(1)">⏮ หน้าแรก</button>
-      <button onclick="goPage(${Math.max(1, currentPage - 1)})">⬅</button>
-      <span>หน้า ${currentPage} / ${totalPages}</span>
-      <button onclick="goPage(${Math.min(totalPages, currentPage + 1)})">➡</button>
-      <button onclick="goPage(${totalPages})">หน้าสุดท้าย ⏭</button>
-    `;
-      }
-
-      function goPage(p) {
-        const totalPages = Math.ceil(donations.length / rowsPerPage);
-        if (p < 1 || p > totalPages) return;
-        currentPage = p;
-        renderTable();
-      }
-
-      // 💰 รวมยอดทั้งหมด (ไม่รวม test / ทดสอบ)
-      function renderTotal() {
-        const total = donations
-          .filter(d => !d.comment?.includes("ทดสอบ") && !d.name?.toLowerCase().includes("test"))
-          .reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
-        document.getElementById("totalBox").innerText = `รวมทั้งหมด: ${total.toFixed(2)} บาท`;
-      }
-
-      // 🔔 กดปุ่ม Alert เพื่อเล่นโดเนทย้อนหลัง
-      function playAlert(name, amount, comment) {
-        fetch("/test-alert", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, amount, comment })
-        })
-          .then(() => {
-            alert(`🔔 เล่นโดเนทย้อนหลัง: ${name} (${amount} บาท)\n💬 ${comment}`);
-          })
-          .catch(err => console.error("❌ ส่ง Alert ไม่ได้:", err));
-      }
-
-      // 🔄 โหลดข้อมูลตอนเปิดหน้า
-      loadDonations();
+    // 🔔 ปุ่มเล่น Alert
+    window.playAlert = (name, amount, comment) => {
+      fetch("/test-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, amount, comment })
+      })
+        .then(() => alert(`🔔 เล่นโดเนทย้อนหลัง: ${name} (${amount} บาท)\n💬 ${comment}`))
+        .catch(err => console.error("❌ ส่ง Alert ไม่ได้:", err));
+    };
   </script>
 
-  
 </body>
 
 </html>

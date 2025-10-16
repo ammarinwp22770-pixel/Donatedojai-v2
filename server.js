@@ -1,3 +1,23 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import admin from "firebase-admin";
+
+const serviceAccount = {
+  type: process.env.TYPE,
+  project_id: process.env.PROJECT_ID,
+  private_key_id: process.env.PRIVATE_KEY_ID,
+private_key: process.env.PRIVATE_KEY.replace(/\\n/g, '\n'),
+  client_email: process.env.CLIENT_EMAIL,
+  client_id: process.env.CLIENT_ID,
+  auth_uri: process.env.AUTH_URI,
+  token_uri: process.env.TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.AUTH_PROVIDER_X509_CERT_URL,
+  client_x509_cert_url: process.env.CLIENT_X509_CERT_URL,
+  universe_domain: process.env.UNIVERSE_DOMAIN
+};
+
+
 import express from "express";
 import { WebSocketServer } from "ws";
 import bodyParser from "body-parser";
@@ -8,9 +28,6 @@ import multer from "multer";
 import http from "http";
 import path from "path"; // ✅ เพิ่มตรงนี้สำคัญมาก!
 
-// 🔥 Firebase Firestore
-import admin from "firebase-admin";
-import serviceAccount from "./donatedojai.json" assert { type: "json" };
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -75,15 +92,9 @@ let pendingDonations = []; // [{ name, amount, comment, time }]
 const donateFile = path.join(process.cwd(), "donates.json"); // ✅ ใช้ path เดียวกันทุก environment
 if (!fs.existsSync(donateFile)) fs.writeFileSync(donateFile, "[]", "utf8");
 
-// 💾 ฟังก์ชันบันทึกข้อมูลโดเนท
-function saveDonate(name, amount, comment = "") {
-  const data = JSON.parse(fs.readFileSync(donateFile, "utf8"));
-  const record = { name, amount, comment, time: new Date().toLocaleString("th-TH") };
-  data.unshift(record);
-  fs.writeFileSync(donateFile, JSON.stringify(data, null, 2), "utf8");
-  console.log("💾 บันทึกโดเนท:", record);
-}
+// 💾 ฟังก์ชันบันทึกข้อมูลโดเนท 
 
+ 
 // 📡 ส่งข้อมูลแบบเรียลไทม์ไป OBS
 function sendToOBS(data) {
   let sent = 0;
