@@ -142,12 +142,22 @@ async function saveDonate(name, amount, comment = "") {
 
 // ✅ รับ Webhook จากมือถือ
 // ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
+app.use(express.text({ type: '*/*' }));
 app.post("/bankhook", async (req, res) => {
   try {
-    const text = req.body.text || "";
+    let text = "";
+
+    // 🔹 ถ้าเป็น JSON ให้ใช้ req.body.text
+    if (typeof req.body === "object" && req.body.text) {
+      text = req.body.text;
+    }
+    // 🔹 ถ้าเป็น text ธรรมดา (Tasker บางเวอร์ชันส่งแบบนี้)
+    else if (typeof req.body === "string") {
+      text = req.body;
+    }
+
     console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
-    // 🔍 ดึงชื่อและจำนวนเงินจากข้อความมือถือ
     const match = text.match(/(\d+(?:\.\d+)?)\s*บาท/);
     const amount = match ? parseFloat(match[1]) : 0;
     const nameMatch = text.match(/จาก\s(.+)/);
@@ -155,58 +165,39 @@ app.post("/bankhook", async (req, res) => {
 
     if (!amount) {
       console.log("⚠️ ไม่พบจำนวนเงินในข้อความ");
-      return res.sendStatus(400);
+      return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
     }
 
-    // ✅ ตรวจว่าตรงกับ QR ที่รออยู่ไหม
-    const matchDonate = pendingDonations.find(
-      (d) => Math.abs(d.amount - amount) < 0.5 // ยอมให้คลาดเคลื่อน 0.5 บาท
-    );
-
-    if (!matchDonate) {
-      console.log("⚠️ ไม่มี QR ที่รอตรงกับยอดนี้:", amount);
-    } else {
-      console.log("✅ พบการโอนตรงกับ QR ที่รอ:", matchDonate);
-      // ลบ QR ที่ตรงออกจาก pending list
-      pendingDonations = pendingDonations.filter((d) => d !== matchDonate);
-      fs.writeFileSync(donateFile, JSON.stringify(pendingDonations, null, 2), "utf8");
-    }
-
-    // 💾 บันทึกลง Firestore
     const donate = {
-      name: name || matchDonate?.name || "ไม่ระบุชื่อ",
-      amount: amount || matchDonate?.amount,
-      comment: matchDonate?.comment || "",
+      name,
+      amount,
+      comment: "โดเนทจริงจากธนาคาร 💚",
       time: new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }),
     };
 
     await db.collection("donations").add(donate);
     console.log("💾 บันทึกโดเนท Firestore:", donate);
 
-    // 📡 แจ้ง OBS ผ่าน WebSocket (alert.html)
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
         client.send(
           JSON.stringify({
-            type: "donate", // 👈 ต้องใช้ type นี้เท่านั้น!
+            type: "donate",
             name: donate.name,
             amount: donate.amount,
-            comment: donate.comment || "ขอบคุณสำหรับการสนับสนุน 💖",
+            comment: donate.comment,
           })
         );
       }
     });
 
-    // ✅ ล็อกสถานะ
     console.log("🎉 Alert ส่งไป OBS แล้ว!");
     res.sendStatus(200);
-
   } catch (err) {
     console.error("❌ Error ใน bankhook:", err);
     res.sendStatus(500);
   }
 });
-
 
 // ✅ ดึงประวัติโดเนททั้งหมด
 app.get("/donates", async (req, res) => {
