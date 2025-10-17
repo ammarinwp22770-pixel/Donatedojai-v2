@@ -168,56 +168,47 @@ async function saveDonate(name, amount, comment = "") {
 
 // ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
 
+// ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
+app.use(express.text({ type: '*/*' }));
 app.post("/bankhook", async (req, res) => {
   try {
-    let text = "";
-
-    // 🔹 ตรวจว่า body เป็น object หรือ string
-    if (typeof req.body === "object" && req.body.text) text = req.body.text;
-    else if (typeof req.body === "string") text = req.body;
-
+    const text = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
-    // ✅ regex ตัวใหม่ จับเงินได้ทุกแบบ (บาท, THB, ฿, มีจุด, มีคอมม่า)
-    const match = text.match(/(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?)(?:\s*)(บาท|฿|THB|บ\.|บาทถ้วน)?/i);
-    const amount = match ? parseFloat(match[1].replace(/,/g, "")) : 0;
-
-    // ✅ regex จับชื่อหลังคำว่า "จาก"
-    const nameMatch = text.match(/จาก\s+([^\n\r]+)/);
-    const name = nameMatch ? nameMatch[1].trim() : "ไม่ทราบชื่อ";
-
-    // 🧠 ถ้าไม่เจอจำนวนเงิน → log เตือนและจบเลย
-    if (!amount || isNaN(amount)) {
-      console.log("⚠️ ไม่พบจำนวนเงินในข้อความ หรือ regex จับไม่ได้:", text);
-      return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
+    // ✅ ดึงรายการล่าสุดที่ยังรอชำระ
+    if (pendingDonations.length === 0) {
+      console.log("⚠️ ไม่มีรายการที่รออยู่ใน pendingDonations");
+      return res.status(400).json({ error: "ไม่มีรายการรอชำระ" });
     }
 
-    const donate = {
-      name,
-      amount,
-      comment: "โดเนทจริงจากธนาคาร 💚",
+    // ✅ สมมุติว่าการแจ้งเตือนนี้คือการจ่ายรายการล่าสุด
+    const latest = pendingDonations.shift(); // เอาออกจากคิว
+    console.log("💰 ยืนยันการชำระ:", latest);
+
+    // ✅ บันทึกลง Firestore
+    await db.collection("donations").add({
+      name: latest.name,
+      amount: latest.amount,
+      comment: latest.comment,
       time: new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }),
-    };
+    });
 
-    await db.collection("donations").add(donate);
-    console.log("💾 บันทึกโดเนท Firestore:", donate);
-
-    // 🔔 ส่งไป OBS alert
+    // ✅ ส่งไป OBS alert.html
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
         client.send(
           JSON.stringify({
             type: "donate",
-            name: donate.name,
-            amount: donate.amount,
-            comment: donate.comment,
+            name: latest.name,
+            amount: latest.amount,
+            comment: latest.comment || "",
           })
         );
       }
     });
 
     console.log("🎉 Alert ส่งไป OBS แล้ว!");
-    res.sendStatus(200);
+    res.json({ success: true, message: "ยืนยันการชำระเงินสำเร็จ!" });
   } catch (err) {
     console.error("❌ Error ใน bankhook:", err);
     res.sendStatus(500);
