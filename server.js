@@ -119,6 +119,13 @@ let pendingDonations = [];
 const donateFile = path.join(__dirname, "donates.json");
 if (!fs.existsSync(donateFile)) fs.writeFileSync(donateFile, "[]", "utf8");
 
+// โหลด pending จากไฟล์เก่าถ้ามี
+const pendingFile = path.join(__dirname, "pending.json");
+if (fs.existsSync(pendingFile)) {
+  pendingDonations = JSON.parse(fs.readFileSync(pendingFile, "utf8"));
+  console.log(`🧾 โหลดรายการรอชำระ ${pendingDonations.length} รายการ`);
+}
+
 // ✅ สร้าง QR PromptPay + Captcha
 app.post("/generateQR", async (req, res) => {
   const { amount, name, comment, token } = req.body;
@@ -151,6 +158,13 @@ app.post("/generateQR", async (req, res) => {
       time: now,
     });
 
+// ✅ บันทึก pending ลงไฟล์
+fs.writeFileSync(
+  path.join(__dirname, "pending.json"),
+  JSON.stringify(pendingDonations, null, 2),
+  "utf8"
+);
+
     res.json({ result: url });
   });
 });
@@ -167,51 +181,62 @@ async function saveDonate(name, amount, comment = "") {
 }
 
 // ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
-
-// ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
 app.use(express.text({ type: '*/*' }));
 app.post("/bankhook", async (req, res) => {
   try {
     const text = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
     console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
-    // ✅ ดึงรายการล่าสุดที่ยังรอชำระ
-    if (pendingDonations.length === 0) {
-      console.log("⚠️ ไม่มีรายการที่รออยู่ใน pendingDonations");
+    // ✅ โหลด pending ล่าสุดจากไฟล์ (กัน Render reset)
+    const pendingFile = path.join(__dirname, "pending.json");
+    if (fs.existsSync(pendingFile)) {
+      pendingDonations = JSON.parse(fs.readFileSync(pendingFile, "utf8"));
+      console.log(`📦 โหลด pending จากไฟล์: ${pendingDonations.length} รายการ`);
+    }
+
+    // ✅ ตรวจว่ามีรายการรอไหม
+    if (!pendingDonations || pendingDonations.length === 0) {
+      console.log("⚠️ ไม่มีรายการรออยู่ใน pendingDonations");
       return res.status(400).json({ error: "ไม่มีรายการรอชำระ" });
     }
 
-    // ✅ สมมุติว่าการแจ้งเตือนนี้คือการจ่ายรายการล่าสุด
-    const latest = pendingDonations.shift(); // เอาออกจากคิว
+    // ✅ เอารายการล่าสุดออกจากคิว
+    const latest = pendingDonations.shift();
     console.log("💰 ยืนยันการชำระ:", latest);
+
+    // ✅ อัปเดตไฟล์หลังตัดรายการออก
+    fs.writeFileSync(
+      pendingFile,
+      JSON.stringify(pendingDonations, null, 2),
+      "utf8"
+    );
 
     // ✅ บันทึกลง Firestore
     await db.collection("donations").add({
       name: latest.name,
       amount: latest.amount,
-      comment: latest.comment,
+      comment: latest.comment || "โดเนทจริงจากธนาคาร 💚",
       time: new Date().toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }),
     });
 
-    // ✅ ส่งไป OBS alert.html
+    // ✅ ส่งไป OBS (alert.html)
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
-        client.send(
-          JSON.stringify({
-            type: "donate",
-            name: latest.name,
-            amount: latest.amount,
-            comment: latest.comment || "",
-          })
-        );
+        client.send(JSON.stringify({
+          type: "donate",
+          name: latest.name,
+          amount: latest.amount,
+          comment: latest.comment || "",
+        }));
       }
     });
 
-    console.log("🎉 Alert ส่งไป OBS แล้ว!");
-    res.json({ success: true, message: "ยืนยันการชำระเงินสำเร็จ!" });
+    console.log("🎉 ส่ง Alert ไป OBS สำเร็จ!");
+    res.json({ success: true, message: "✅ ยืนยันการชำระเงินสำเร็จ!" });
+
   } catch (err) {
     console.error("❌ Error ใน bankhook:", err);
-    res.sendStatus(500);
+    res.status(500).json({ error: "เซิร์ฟเวอร์เกิดข้อผิดพลาด" });
   }
 });
 
