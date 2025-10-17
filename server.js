@@ -44,7 +44,28 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-// 📁 Upload system
+// 🌐 รวม Express + WebSocket (Render ต้องใช้พอร์ตเดียว)
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server, path: "/ws" });
+
+// 🎨 เก็บค่าการตั้งค่าปัจจุบันของ alert
+let alertConfig = {
+  popupImage: "",
+  color: "#69eaff",
+  nameColor: "#ff5ca1",
+  amountColor: "#47ffa1",
+  commentColor: "#a7b8ff",
+  sound: "alert.mp3"
+};
+
+// 🟢 เมื่อมี client (เช่น alert.html) มาเชื่อมต่อ
+wss.on("connection", (ws) => {
+  console.log("🟢 WebSocket ใหม่เชื่อมต่อเข้ามาแล้ว!");
+  // ✅ ส่ง config ล่าสุดให้ทันที
+  ws.send(JSON.stringify({ type: "config_update", config: alertConfig }));
+});
+
+// 📁 ระบบอัปโหลดภาพ alert popup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "public/uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
@@ -53,14 +74,20 @@ const upload = multer({ storage });
 
 app.post("/upload-popup", upload.single("popupImage"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "ไม่พบไฟล์" });
-  const imagePath = "/uploads/" + req.file.filename;
-  res.json({ path: imagePath });
-});
 
-// 🌐 รวม Express + WebSocket (Render ต้องใช้พอร์ตเดียว)
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: "/ws" });
-wss.on("connection", () => console.log("🟢 WebSocket ใหม่เชื่อมต่อเข้ามาแล้ว!"));
+  const imagePath = "/uploads/" + req.file.filename;
+  alertConfig.popupImage = imagePath; // ✅ อัปเดตรูปใหม่ใน config
+
+  // ✅ แจ้งทุก alert.html ที่เปิดอยู่ให้เปลี่ยนภาพทันที
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify({ type: "config_update", config: alertConfig }));
+    }
+  });
+
+  console.log("🖼️ อัปโหลดภาพ popup ใหม่:", imagePath);
+  res.json({ success: true, image: imagePath });
+});
 
 
 // ✅ Queue สำหรับ Alert
@@ -118,7 +145,6 @@ app.post("/generateQR", async (req, res) => {
     const now = Date.now();
     pendingDonations = pendingDonations.filter((p) => now - p.time < 600000);
     pendingDonations.push({
-      
       name: name || "ไม่ระบุชื่อ",
       amount: parseFloat(amount),
       comment: comment || "",
@@ -140,21 +166,15 @@ async function saveDonate(name, amount, comment = "") {
   }
 }
 
-// ✅ รับ Webhook จากมือถือ
 // ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
 app.use(express.text({ type: '*/*' }));
 app.post("/bankhook", async (req, res) => {
   try {
     let text = "";
 
-    // 🔹 ถ้าเป็น JSON ให้ใช้ req.body.text
-    if (typeof req.body === "object" && req.body.text) {
-      text = req.body.text;
-    }
-    // 🔹 ถ้าเป็น text ธรรมดา (Tasker บางเวอร์ชันส่งแบบนี้)
-    else if (typeof req.body === "string") {
-      text = req.body;
-    }
+    // 🔹 ตรวจรูปแบบข้อความ
+    if (typeof req.body === "object" && req.body.text) text = req.body.text;
+    else if (typeof req.body === "string") text = req.body;
 
     console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
@@ -163,10 +183,7 @@ app.post("/bankhook", async (req, res) => {
     const nameMatch = text.match(/จาก\s(.+)/);
     const name = nameMatch ? nameMatch[1].trim() : "ไม่ทราบชื่อ";
 
-    if (!amount) {
-      console.log("⚠️ ไม่พบจำนวนเงินในข้อความ");
-      return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
-    }
+    if (!amount) return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
 
     const donate = {
       name,
@@ -178,16 +195,15 @@ app.post("/bankhook", async (req, res) => {
     await db.collection("donations").add(donate);
     console.log("💾 บันทึกโดเนท Firestore:", donate);
 
+    // ส่ง event ไป OBS
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
-        client.send(
-          JSON.stringify({
-            type: "donate",
-            name: donate.name,
-            amount: donate.amount,
-            comment: donate.comment,
-          })
-        );
+        client.send(JSON.stringify({
+          type: "donate",
+          name: donate.name,
+          amount: donate.amount,
+          comment: donate.comment,
+        }));
       }
     });
 
@@ -217,50 +233,28 @@ app.get("/test", (req, res) => {
   res.send("✅ ส่ง alert ทดสอบไป OBS แล้ว!");
 });
 
+// ✅ Static pages
 app.get("/", (req, res) => res.sendFile("index.html", { root: "public" }));
 app.get("/alert", (req, res) => res.sendFile("alert.html", { root: "public" }));
 app.get("/dashboard", (req, res) => res.sendFile("dashboard.html", { root: "public" }));
 app.get("/goal", (req, res) => res.sendFile("goal.html", { root: "public" }));
 
-// ✅ Start server
-const PORT = process.env.PORT || 3000;
-
-// ✅ Hook สำหรับรับข้อมูลโดเนทจาก Tasker หรือ curl
+// ✅ Tasker hook
 app.post("/api/payment-hook", (req, res) => {
   try {
     const { name, amount, comment } = req.body;
+    if (!name || !amount) return res.status(400).json({ error: "Missing name or amount" });
 
-    if (!name || !amount) {
-      return res.status(400).json({ error: "Missing name or amount" });
-    }
-
-    // 🔹 โหลดข้อมูลเดิม
-    const donateFile = "donates.json";
-    const data = JSON.parse(fs.readFileSync(donateFile, "utf8"));
-
-    // 🔹 เพิ่มข้อมูลใหม่
-    const record = {
-      name,
-      amount,
-      comment: comment || "",
-      time: new Date().toLocaleString("th-TH"),
-    };
+    const data = JSON.parse(fs.readFileSync("donates.json", "utf8"));
+    const record = { name, amount, comment: comment || "", time: new Date().toLocaleString("th-TH") };
     data.push(record);
-    fs.writeFileSync(donateFile, JSON.stringify(data, null, 2));
+    fs.writeFileSync("donates.json", JSON.stringify(data, null, 2));
 
     console.log("💖 มีโดเนทใหม่เข้ามา:", record);
 
-    // 🔹 ส่ง event ไปหา WebSocket alert.html
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
-        client.send(
-          JSON.stringify({
-            type: "donate",
-            name,
-            amount,
-            comment,
-          })
-        );
+        client.send(JSON.stringify({ type: "donate", name, amount, comment }));
       }
     });
 
@@ -271,5 +265,6 @@ app.post("/api/payment-hook", (req, res) => {
   }
 });
 
-
+// ✅ Start server
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
