@@ -167,26 +167,28 @@ async function saveDonate(name, amount, comment = "") {
 }
 
 // ✅ รับ Webhook จากมือถือ (Tasker / MacroDroid)
-app.use(express.text({ type: '*/*' }));
+
 app.post("/bankhook", async (req, res) => {
   try {
     let text = "";
 
+    // 🔹 ตรวจว่า body เป็น object หรือ string
     if (typeof req.body === "object" && req.body.text) text = req.body.text;
     else if (typeof req.body === "string") text = req.body;
 
     console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
-    // 🔹 ปรับ regex ให้รองรับทุกแบบของคำว่า "บาท"
- const match = text.match(/(\d+(?:[.,]\d+)?)\s*(บาท|฿|THB|บ\.|฿)?/i);
-    const amount = match ? parseFloat(match[1]) : 0;
+    // ✅ regex ตัวใหม่ จับเงินได้ทุกแบบ (บาท, THB, ฿, มีจุด, มีคอมม่า)
+    const match = text.match(/(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?)(?:\s*)(บาท|฿|THB|บ\.|บาทถ้วน)?/i);
+    const amount = match ? parseFloat(match[1].replace(/,/g, "")) : 0;
 
-    // 🔹 หาชื่อคนโอน
-    const nameMatch = text.match(/จาก\s(.+)/);
+    // ✅ regex จับชื่อหลังคำว่า "จาก"
+    const nameMatch = text.match(/จาก\s+([^\n\r]+)/);
     const name = nameMatch ? nameMatch[1].trim() : "ไม่ทราบชื่อ";
 
-    if (!amount) {
-      console.log("⚠️ ไม่พบจำนวนเงินในข้อความ");
+    // 🧠 ถ้าไม่เจอจำนวนเงิน → log เตือนและจบเลย
+    if (!amount || isNaN(amount)) {
+      console.log("⚠️ ไม่พบจำนวนเงินในข้อความ หรือ regex จับไม่ได้:", text);
       return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
     }
 
@@ -200,6 +202,7 @@ app.post("/bankhook", async (req, res) => {
     await db.collection("donations").add(donate);
     console.log("💾 บันทึกโดเนท Firestore:", donate);
 
+    // 🔔 ส่งไป OBS alert
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
         client.send(
