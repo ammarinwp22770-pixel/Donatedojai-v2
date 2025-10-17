@@ -172,18 +172,23 @@ app.post("/bankhook", async (req, res) => {
   try {
     let text = "";
 
-    // 🔹 ตรวจรูปแบบข้อความ
     if (typeof req.body === "object" && req.body.text) text = req.body.text;
     else if (typeof req.body === "string") text = req.body;
 
     console.log("📩 ได้รับข้อความจาก Tasker:", text);
 
-    const match = text.match(/(\d+(?:\.\d+)?)\s*บาท/);
+    // 🔹 ปรับ regex ให้รองรับทุกแบบของคำว่า "บาท"
+    const match = text.match(/(\d+(?:\.\d+)?)\s*(บาท|฿|THB)?/i);
     const amount = match ? parseFloat(match[1]) : 0;
+
+    // 🔹 หาชื่อคนโอน
     const nameMatch = text.match(/จาก\s(.+)/);
     const name = nameMatch ? nameMatch[1].trim() : "ไม่ทราบชื่อ";
 
-    if (!amount) return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
+    if (!amount) {
+      console.log("⚠️ ไม่พบจำนวนเงินในข้อความ");
+      return res.status(400).json({ error: "ไม่มีจำนวนเงินในข้อความ" });
+    }
 
     const donate = {
       name,
@@ -195,15 +200,16 @@ app.post("/bankhook", async (req, res) => {
     await db.collection("donations").add(donate);
     console.log("💾 บันทึกโดเนท Firestore:", donate);
 
-    // ส่ง event ไป OBS
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
-        client.send(JSON.stringify({
-          type: "donate",
-          name: donate.name,
-          amount: donate.amount,
-          comment: donate.comment,
-        }));
+        client.send(
+          JSON.stringify({
+            type: "donate",
+            name: donate.name,
+            amount: donate.amount,
+            comment: donate.comment,
+          })
+        );
       }
     });
 
